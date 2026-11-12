@@ -1,45 +1,30 @@
-import { useEffect, useState } from 'react';
-
-interface Health {
-  status: string;
-  version: string;
-}
+import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { Layout } from './components/Layout.js';
+import { GlobalDashboard } from './screens/GlobalDashboard.js';
+import { ProjectsDashboard } from './screens/ProjectsDashboard.js';
+import { ProjectWorkspace } from './screens/ProjectWorkspace.js';
+import { AIWorkspace } from './screens/AIWorkspace.js';
+import { BuildCenter } from './screens/BuildCenter.js';
+import { AuditCenter } from './screens/AuditCenter.js';
+import { ReleaseCenter } from './screens/ReleaseCenter.js';
+import { Settings } from './screens/Settings.js';
 
 export function App() {
-  const [health, setHealth] = useState<Health | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch('/healthz')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then(setHealth)
-      .catch((e) => setError(String(e)));
-  }, []);
-
   return (
-    <main
-      style={{
-        fontFamily: 'var(--nf-font)',
-        background: 'var(--nf-bg)',
-        color: 'var(--nf-text)',
-        minHeight: '100vh',
-        display: 'grid',
-        placeItems: 'center',
-      }}
-    >
-      <div
-        style={{
-          background: 'var(--nf-surface)',
-          borderRadius: 'var(--nf-radius)',
-          padding: '2rem 3rem',
-          textAlign: 'center',
-        }}
-      >
-        <h1 style={{ color: 'var(--nf-accent)', margin: 0 }}>NeuroOS App Factory</h1>
-        <p>Universal Software Production System — foundation v0.1.0</p>
-        {health && <p>API: {health.status} (v{health.version})</p>}
-        {error && <p style={{ color: 'var(--nf-special)' }}>API недоступен: {error}</p>}
-      </div>
-    </main>
+    <HashRouter>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<GlobalDashboard />} />
+          <Route path="/projects" element={<ProjectsDashboard />} />
+          <Route path="/projects/:slug" element={<ProjectWorkspace />} />
+          <Route path="/ai" element={<AIWorkspace />} />
+          <Route path="/builds" element={<BuildCenter />} />
+          <Route path="/audit" element={<AuditCenter />} />
+          <Route path="/releases" element={<ReleaseCenter />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Layout>
+    </HashRouter>
   );
 }

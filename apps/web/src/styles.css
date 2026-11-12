@@ -1,0 +1,272 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--nf-font);
+  background: var(--nf-bg);
+  color: var(--nf-text);
+}
+
+.nf-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.nf-sidebar {
+  width: 230px;
+  flex-shrink: 0;
+  background: var(--nf-dark-teal);
+  padding: 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.nf-brand {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.nf-brand-accent {
+  color: var(--nf-accent);
+}
+
+.nf-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.nf-nav-item {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--nf-radius);
+  color: var(--nf-text);
+  text-decoration: none;
+}
+
+.nf-nav-item--active {
+  background: var(--nf-accent-alt);
+  color: #ffffff;
+}
+
+.nf-sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--nf-text-muted);
+}
+
+.nf-ws-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.nf-ws-dot--online {
+  background: var(--nf-celadon);
+}
+
+.nf-ws-dot--offline {
+  background: var(--nf-special);
+}
+
+.nf-content {
+  flex: 1;
+  padding: 1.5rem 2rem;
+  max-width: 1200px;
+}
+
+.nf-live-banner {
+  background: var(--nf-dark-teal);
+  border: 1px solid var(--nf-border);
+  border-radius: var(--nf-radius);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  margin-bottom: 1rem;
+  color: var(--nf-accent);
+}
+
+.nf-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.nf-card {
+  background: var(--nf-surface);
+  border: 1px solid var(--nf-border);
+  border-radius: var(--nf-radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.nf-card-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  color: var(--nf-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.nf-stat {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--nf-accent);
+}
+
+.nf-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--nf-accent-alt);
+  color: #ffffff;
+}
+
+.nf-badge--idea,
+.nf-badge--queued,
+.nf-badge--not_implemented {
+  background: var(--nf-text-muted);
+}
+
+.nf-badge--done,
+.nf-badge--released,
+.nf-badge--approved {
+  background: var(--nf-celadon);
+  color: #033438;
+}
+
+.nf-badge--blocked,
+.nf-badge--failed,
+.nf-badge--not_tested {
+  background: var(--nf-special);
+}
+
+.nf-badge--running,
+.nf-badge--building {
+  background: var(--nf-accent);
+  color: #033438;
+}
+
+.nf-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.nf-chip {
+  border: 1px solid var(--nf-border);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.nf-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  line-height: 1.7;
+}
+
+.nf-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.nf-table th,
+.nf-table td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--nf-border);
+}
+
+.nf-table a {
+  color: var(--nf-accent);
+}
+
+.nf-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 420px;
+}
+
+.nf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.nf-field-label {
+  font-size: 0.8rem;
+  color: var(--nf-text-muted);
+}
+
+.nf-button {
+  background: var(--nf-accent);
+  color: #033438;
+  border: none;
+  border-radius: var(--nf-radius);
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nf-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.nf-error {
+  border: 1px solid var(--nf-special);
+  border-radius: var(--nf-radius);
+  padding: 0.75rem 1rem;
+  color: var(--nf-special);
+}
+
+.nf-error-text {
+  color: var(--nf-special);
+  margin: 0;
+}
+
+.nf-ok-text {
+  color: var(--nf-celadon);
+  margin: 0;
+}
+
+.nf-empty {
+  color: var(--nf-text-muted);
+  font-style: italic;
+}
+
+.nf-loading {
+  color: var(--nf-text-muted);
+}
+
+.nf-slug {
+  color: var(--nf-text-muted);
+  font-weight: 400;
+}
+
+@media (max-width: 800px) {
+  .nf-layout {
+    flex-direction: column;
+  }
+
+  .nf-sidebar {
+    width: 100%;
+  }
+
+  .nf-content {
+    padding: 1rem;
+  }
+}

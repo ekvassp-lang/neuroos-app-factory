@@ -133,3 +133,55 @@
 командами и реальными кодами выхода; живой HTTP smoke-тест пройден. Этап считается
 завершённым локально; до полного DONE остаётся: прогон CI на GitHub, применение
 схемы БД на реальный PostgreSQL, утверждение GATE 1 владельцем.
+
+---
+
+# STAGE 2 — UI/UX ФАБРИКИ: аудит выполнения
+
+## 1. Выполненные команды (фактические)
+
+| Команда | Результат |
+|---|---|
+| `pnpm typecheck` | OK, exit 0 — 5 проектов |
+| `pnpm build` | OK, exit 0 — web bundle 182.15 kB JS (gzip 58.94 kB), 3.87 kB CSS |
+| `pnpm test` | OK, exit 0 — **21 тест**: core-contracts 1, design-system 1, runner 7, server 9, web 3 |
+| Живой smoke-тест (node, loopback :3124) | OK — сервер поднят; WS-клиент подключился и получил события `project.created`, `project.updated`, `job.created`; создан проект, статус изменён на ANALYSIS, задача build_run поставлена в очередь; overview вернул корректные агрегаты |
+
+## 2. Что реализовано
+
+**Сервер (apps/server):**
+- Хранилище состояния (store.ts): проекты, события, задачи, артефакты, релизы, настройки; подписка на события.
+- API v0.2.0: `GET /api/v1/overview` (агрегаты + последние события), `GET/POST /api/v1/projects`, `GET /api/v1/projects/:slug`, `PATCH /api/v1/projects/:slug` (валидация статуса из 14 состояний и этапа 0–8, запись lifecycle-события при смене статуса), `GET /api/v1/events`, `GET/POST /api/v1/jobs` (валидация kind, 404 проекта, идемпотентность ключа → 409), `POST /api/v1/jobs/:id/cancel` (409 для завершённых), `GET /api/v1/artifacts`, `GET /api/v1/releases`, `GET/PUT /api/v1/settings`.
+- WebSocket `/ws` (@fastify/websocket v11): широковещательная рассылка событий состояния всем подключённым клиентам.
+
+**Контракты (packages/core-contracts):** добавлены `Release`, `ReleaseChannel`, `FactorySettings`; `Job` расширен временными метками и `error` (обратимо-совместимо).
+
+**Дизайн-система (packages/design-system):** тёмная и светлая темы (`data-theme`), токены границ/приглушённого текста.
+
+**Веб (apps/web):** React Router (hash-роутинг), сайдбар-навигация, индикатор WS-подключения (честный offline-статус с авто-переподключением), лента live-событий; 8 экранов: Global Dashboard, Projects Dashboard (создание проектов), Project Workspace (карточка, смена статуса, история, задачи), AI Workspace (честный статус «провайдеры отключены»), Build Center (очередь задач, постановка, отмена), Audit Center (журнал), Release Center (честный пустой реестр), Settings (тема, offline, ИИ — с сохранением на сервер). Адаптивность ≤800px.
+
+## 3. Найденные и исправленные проблемы
+
+1. `createApp` стал async (регистрация WS-плагина) — обновлены main.ts и тесты.
+2. @fastify/websocket v11: соединение — сам WebSocket (без `.socket`) — исправлено после ошибки сборки.
+3. Тесты web требуют jsdom — добавлены `test.environment` в vite.config и devDeps (jsdom, @testing-library/react).
+
+## 4. Честные статусы
+
+| Компонент | Статус |
+|---|---|
+| API сервера (12 эндпоинтов + WS) | DONE — 9 тестов + живой smoke |
+| 8 экранов UI | DONE (рендер + данные API подтверждены 3 тестами jsdom; визуальная приёмка владельцем не выполнялась) |
+| WebSocket-статусы | DONE — живой тест: события доставлены |
+| Исполнение задач (RUNNER/pg-boss) | NOT IMPLEMENTED — STAGE 3, задачи честно остаются queued |
+| ИИ-провайдеры | BLOCKED — нет ключей, smoke-тест не проводился |
+| Персистентность (PostgreSQL) | NOT IMPLEMENTED — состояние in-memory, схема ждёт STAGE 3 |
+| Аутентификация/роли | NOT IMPLEMENTED — STAGE 3+ |
+
+## 5. Подтверждённый статус этапа
+
+**STAGE 2 — DONE (по локальной верификации) / PARTIAL (в целом).**
+Работающий интерфейс с реальными данными API (не макет): все экраны читают живой
+API, создание проектов и постановка задач реально работают, статусы приходят по
+WebSocket. До полного DONE: исполнение задач (STAGE 3), персистентность,
+утверждение GATE 2 владельцем.

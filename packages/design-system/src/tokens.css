@@ -1,12 +1,23 @@
-:root {
+:root,
+:root[data-theme='dark'] {
   --nf-bg: #111827;
   --nf-surface: #1b2436;
   --nf-text: #e7ecf5;
+  --nf-text-muted: #93a1b8;
   --nf-accent: #18d6d1;
   --nf-accent-alt: #0a6cff;
   --nf-special: #f86e8f;
   --nf-celadon: #a4d9bb;
   --nf-dark-teal: #033438;
+  --nf-border: rgba(231, 236, 245, 0.12);
   --nf-radius: 10px;
   --nf-font: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+}
+
+:root[data-theme='light'] {
+  --nf-bg: #f4f6fa;
+  --nf-surface: #ffffff;
+  --nf-text: #111827;
+  --nf-text-muted: #5b6472;
+  --nf-border: rgba(17, 24, 39, 0.12);
 }

@@ -107,6 +107,10 @@ export interface Job {
   idempotencyKey: string;
   attempts: number;
   maxAttempts: number;
+  createdAt?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  error?: string;
 }
 
 export interface Artifact {
@@ -131,4 +135,24 @@ export interface RunnerLog {
   stderrTail: string;
   startedAt: string;
   finishedAt: string;
+}
+
+export type ReleaseChannel = 'stable' | 'beta' | 'alpha' | 'dev';
+
+export interface Release {
+  id: string;
+  projectId: string;
+  version: string;
+  channel: ReleaseChannel;
+  notes: string;
+  artifactIds: string[];
+  createdAt: string;
+  releasedAt?: string;
+}
+
+export interface FactorySettings {
+  theme: 'dark' | 'light';
+  defaultPlatforms: Platform[];
+  offlineModeEnabled: boolean;
+  aiEnabled: boolean;
 }
