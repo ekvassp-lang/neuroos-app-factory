@@ -17,18 +17,60 @@ export class ApiError extends Error {
   }
 }
 
+const CACHE_PREFIX = 'nf-cache:';
+
+let fromCache = false;
+
+export function wasFromCache(): boolean {
+  return fromCache;
+}
+
+function readCache<T>(url: string): T | null {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + url);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(url: string, data: unknown): void {
+  try {
+    localStorage.setItem(CACHE_PREFIX + url, JSON.stringify(data));
+  } catch {
+    return;
+  }
+}
+
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
-  const res = await fetch(url, {
-    method,
-    headers: body !== undefined ? { 'content-type': 'application/json' } : undefined,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method,
+      headers: body !== undefined ? { 'content-type': 'application/json' } : undefined,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch (error) {
+    if (method === 'GET') {
+      const cached = readCache<T>(url);
+      if (cached !== null) {
+        fromCache = true;
+        return cached;
+      }
+    }
+    fromCache = false;
+    throw error;
+  }
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
   if (!res.ok) {
     const message =
       data && typeof data === 'object' && 'error' in data ? String(data.error) : `HTTP ${res.status}`;
     throw new ApiError(res.status, message);
+  }
+  fromCache = false;
+  if (method === 'GET') {
+    writeCache(url, data);
   }
   return data as T;
 }

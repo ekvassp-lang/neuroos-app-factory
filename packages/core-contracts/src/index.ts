@@ -62,6 +62,7 @@ export interface Project {
   targetPlatforms: Platform[];
   currentStage: number;
   acceptanceCriteria: AcceptanceCriterion[];
+  revision?: number;
   createdAt: string;
   updatedAt: string;
 }

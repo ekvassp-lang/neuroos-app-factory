@@ -1,9 +1,9 @@
 import { useApi } from '../hooks.js';
 import { api, type Overview } from '../api.js';
-import { Card, EmptyState, ErrorBox, Loader, StatusBadge } from '../components/ui.js';
+import { CacheBadge, Card, EmptyState, ErrorBox, Loader, StatusBadge } from '../components/ui.js';
 
 export function GlobalDashboard() {
-  const { data, error, loading, reload } = useApi<Overview>(() => api.overview());
+  const { data, error, loading, fromCache, reload } = useApi<Overview>(() => api.overview());
 
   if (loading) return <Loader />;
   if (error || !data) return <ErrorBox message={error ?? 'нет данных'} onRetry={reload} />;
@@ -11,6 +11,7 @@ export function GlobalDashboard() {
   return (
     <div>
       <h1>Global Dashboard</h1>
+      {fromCache && <CacheBadge />}
       <div className="nf-stat-grid">
         <Card title="Проекты">
           <p className="nf-stat">{data.totals.projects}</p>

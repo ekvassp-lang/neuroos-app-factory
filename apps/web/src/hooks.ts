@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { wasFromCache } from './api.js';
 
 export interface ApiResult<T> {
   data: T | null;
   error: string | null;
   loading: boolean;
+  fromCache: boolean;
   reload: () => void;
 }
 
@@ -11,6 +13,7 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = []): ApiR
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fromCache, setFromCache] = useState(false);
   const [tick, setTick] = useState(0);
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
@@ -24,10 +27,14 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = []): ApiR
         if (!cancelled) {
           setData(result);
           setError(null);
+          setFromCache(wasFromCache());
         }
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : String(err));
+          setFromCache(false);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -40,7 +47,7 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = []): ApiR
 
   const reload = useCallback(() => setTick((t) => t + 1), []);
 
-  return { data, error, loading, reload };
+  return { data, error, loading, fromCache, reload };
 }
 
 export interface LiveEvent {

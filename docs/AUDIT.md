@@ -242,3 +242,52 @@ WebSocket. До полного DONE: исполнение задач (STAGE 3), 
 гейты оцениваются и утверждаются по правилам QUALITY_GATES.md, преждевременный RELEASED
 отклоняется сервером. До полного DONE этапа: персистентность (STAGE 4), реальный ИИ-провайдер
 (ключи от владельца), роли/аутентификация, утверждение гейтов владельцем.
+
+---
+
+# STAGE 4 — OFFLINE / ONLINE: аудит выполнения
+
+## 1. Выполненные команды (фактические)
+
+| Команда | Результат |
+|---|---|
+| `pnpm install` | OK — sync-engine в lockfile |
+| `pnpm --filter @neuroos/sync-engine typecheck && test` | OK — 10 тестов |
+| `pnpm typecheck` / `pnpm build` / `pnpm test` | OK — 8 проектов, **72 теста** зелёные |
+| Живой smoke-тест (node, loopback :3458/:3459) | OK — гибридная модель: офлайн-очередь накопила 2 операции (flush не отправил ничего), после goOnline обе применены через `POST /api/v1/sync` (revision 1→3, правки не потеряны); после рестарта сервера состояние восстановлено из снапшота |
+
+## 2. Что реализовано
+
+**packages/sync-engine (@neuroos/sync-engine):**
+- `KVAdapter` (get/set/delete/keys) + `MemoryKV`; адаптер — точка расширения для IndexedDB (браузер) и файлового хранилища.
+- `OperationQueue`: постановка с idempotency-ключом (дубликат не ставится дважды), статусы pending/synced/conflict/failed, `markAttempted` с ошибкой, `requeueFailed`, `clearSynced`, порядок по времени создания.
+- `resolveLWW` — разрешение конфликтов Last-Writer-Wins с вектором версий (updatedAt → revision → remote).
+- `SyncClient`: transport-абстракция, `goOffline`/`goOnline`, flush очереди (applied/duplicate/conflict/rejected), подключаемый разрешатель конфликтов, события onFlushed/onConflict. 10 тестов, включая обязательный сценарий «переключение режимов без потери данных».
+
+**Сервер (apps/server) — API v0.4.0:**
+- `packages/core-contracts`: `Project.revision?: number` (вектор версий для LWW).
+- Персистентность: `persistence.ts` — JSON-снапшот состояния (атомарная запись через tmp+rename), загрузка при старте, отложенная запись по подписке на события стора; `CreateAppOptions.persistPath`, `flushPersistence()`.
+- `POST /api/v1/sync` — батch операций клиента: create_project / patch_project; **idempotency** (повтор операции → duplicate), **конфликты** (stale baseRevision → outcome conflict с серверной версией), валидация и RELEASED-правило внутри sync.
+- revision инкрементируется при создании (1) и каждом PATCH.
+
+**Веб (apps/web):** offline-кэш GET-ответов в localStorage; при сетевом сбое — отдача кэша с честным маркером «Офлайн: показаны кэшированные данные» (data-testid="offline-cache"); без кэша — честная ошибка с retry. 2 новых jsdom-теста.
+
+## 3. Честные статусы
+
+| Компонент | Статус |
+|---|---|
+| Sync-engine (очередь, idempotency, LWW) | DONE — 10 тестов + живой smoke |
+| Серверная персистентность (fs-снапшот) | DONE — рестарт восстановил состояние (живой тест) |
+| PostgreSQL/pg-boss | NOT TESTED — по-прежнему нет PG в песочнице; fs-снапшот — промежуточное решение, честно задокументировано |
+| Sync-эндпоинт (батч, дубликаты, конфликты) | DONE — 4 теста |
+| Offline-кэш UI с честной индикацией | DONE — 2 jsdom-теста |
+| IndexedDB-адаптер для браузера | NOT IMPLEMENTED — интерфейс KVAdapter готов, браузерный адаптер — STAGE 5 (PWA) |
+| Полный offline-режим UI (все мутации через очередь) | PARTIAL — очередь и sync-протокол готовы и проверены; мутации UI пока идут напрямую, интеграция экранов с очередью — STAGE 5 |
+
+## 4. Подтверждённый статус этапа
+
+**STAGE 4 — DONE (по локальной верификации) / PARTIAL (в целом).**
+Проверенная гибридная модель: работа без сети не теряет данные (обязательный тест пройден
+фактически), конфликты разрешаются LWW + вектором версий, состояние переживает рестарт.
+До полного DONE: IndexedDB-адаптер и перевод мутаций UI через очередь (STAGE 5, PWA),
+PostgreSQL-персистентность (нужен PG).

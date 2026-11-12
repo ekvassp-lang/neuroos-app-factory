@@ -8,7 +8,7 @@ IDEA → SPECIFICATION → ARCHITECTURE → DEVELOPMENT → TESTING → AUDIT �
 ```
 
 - **Версия:** 0.1.0
-- **Статус:** STAGE 3 — Core Functionality (конвейер «идея → каркас → тесты → гейты» работает; детали в [docs/AUDIT.md](docs/AUDIT.md))
+- **Статус:** STAGE 4 — Offline/Online (гибридная модель: офлайн-очередь, LWW-синхронизация, персистентность; детали в [docs/AUDIT.md](docs/AUDIT.md))
 - **Исполнительская среда:** Vibe Code (async agent); нормативный стандарт производства —
   `STANDARD — UNIVERSAL MULTIPLATFORM APP BUILDER` («003 промпт»)
 
@@ -68,9 +68,9 @@ Android (APK/AAB), iOS (IPA/проект подписанной сборки). �
 
 ```bash
 pnpm install
-pnpm typecheck   # сборка пакетов + проверка типов (7 проектов)
-pnpm build       # dist/ у 5 пакетов + apps/web/dist (Vite)
-pnpm test        # 54 теста: core-contracts, design-system, runner, gate-service, ai-provider, server, web
+pnpm typecheck   # сборка пакетов + проверка типов (8 проектов)
+pnpm build       # dist/ у 6 пакетов + apps/web/dist (Vite)
+pnpm test        # 72 теста: core-contracts, design-system, runner, gate-service, ai-provider, sync-engine, server, web
 ```
 
 Сервер: `pnpm --filter @neuroos/server dev` (или `node apps/server/dist/main.js`) → `http://127.0.0.1:3000/healthz`.

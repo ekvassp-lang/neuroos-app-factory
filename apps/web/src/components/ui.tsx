@@ -34,6 +34,14 @@ export function EmptyState({ text }: { text: string }) {
   return <p className="nf-empty">{text}</p>;
 }
 
+export function CacheBadge() {
+  return (
+    <p className="nf-empty" data-testid="offline-cache" role="status">
+      Офлайн: показаны кэшированные данные
+    </p>
+  );
+}
+
 export function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="nf-field">

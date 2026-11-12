@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom';
 import { useApi } from '../hooks.js';
 import { api, ApiError } from '../api.js';
 import type { Project } from '@neuroos/core-contracts';
-import { Card, EmptyState, ErrorBox, Field, Loader, StatusBadge } from '../components/ui.js';
+import { CacheBadge, Card, EmptyState, ErrorBox, Field, Loader, StatusBadge } from '../components/ui.js';
 
 export function ProjectsDashboard() {
-  const { data, error, loading, reload } = useApi<{ items: Project[] }>(() => api.projects());
+  const { data, error, loading, fromCache, reload } = useApi<{ items: Project[] }>(() => api.projects());
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [formError, setFormError] = useState<string | null>(null);

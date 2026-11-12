@@ -64,6 +64,7 @@ describe('web shell', () => {
   });
 
   it('shows an honest error when the API is unreachable', async () => {
+    localStorage.clear();
     vi.stubGlobal(
       'fetch',
       vi.fn(() => Promise.reject(new Error('connection refused'))),

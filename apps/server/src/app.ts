@@ -26,6 +26,7 @@ import {
   LIFECYCLE_STATUSES,
   type FactoryState,
 } from './store.js';
+import { createPersistence } from './persistence.js';
 import {
   artifactPath,
   artifactStorageKey,
@@ -40,15 +41,39 @@ export interface CreateAppOptions {
   state?: FactoryState;
   broadcaster?: Broadcaster;
   dataDir?: string;
+  persistPath?: string;
   aiComplete?: WorkerContext['aiComplete'];
 }
 
+export interface SyncOperationInput {
+  id: string;
+  kind: string;
+  payload?: {
+    name?: string;
+    slug?: string;
+    baseRevision?: number;
+    status?: Project['status'];
+    currentStage?: number;
+    acceptanceCriteria?: Project['acceptanceCriteria'];
+    targetPlatforms?: Project['targetPlatforms'];
+  };
+}
+
 export async function createApp(options: CreateAppOptions = {}) {
-  const store = createStore(options.state ?? defaultState());
+  const persistence = options.persistPath
+    ? createPersistence(options.persistPath, () => store.state)
+    : null;
+  const initialState = persistence ? await persistence.load() : (options.state ?? defaultState());
+  const store = createStore(initialState);
   const broadcaster = options.broadcaster ?? createBroadcaster();
   const { state } = store;
   const dataDir = options.dataDir ?? path.resolve('data');
   const workerContext: WorkerContext = { dataDir, aiComplete: options.aiComplete };
+  if (persistence) {
+    store.subscribe(() => persistence.scheduleSave());
+  }
+
+  const appliedSyncResults = new Map<string, { outcome: 'applied'; projectId: string }>();
 
   const app = Fastify({ logger: false });
   await app.register(websocket);
@@ -56,7 +81,7 @@ export async function createApp(options: CreateAppOptions = {}) {
   app.get('/healthz', async () => ({
     status: 'ok',
     service: 'neuroos-app-factory-server',
-    version: '0.3.0',
+    version: '0.4.0',
   }));
 
   app.get('/api/v1/overview', async () => {
@@ -79,13 +104,12 @@ export async function createApp(options: CreateAppOptions = {}) {
 
   app.get('/api/v1/projects', async () => ({ items: state.projects }));
 
-  app.post<{ Body: { name?: string; slug?: string } }>('/api/v1/projects', async (req, reply) => {
-    const { name, slug } = req.body ?? {};
+  function createProjectInner(name: string, slug: string): { error?: string; code?: number; project?: Project } {
     if (!name || !slug) {
-      return reply.code(400).send({ error: 'name and slug are required' });
+      return { error: 'name and slug are required', code: 400 };
     }
     if (state.projects.some((p) => p.slug === slug)) {
-      return reply.code(409).send({ error: 'slug already exists' });
+      return { error: 'slug already exists', code: 409 };
     }
     const now = new Date().toISOString();
     const project: Project = {
@@ -96,13 +120,23 @@ export async function createApp(options: CreateAppOptions = {}) {
       targetPlatforms: [...state.settings.defaultPlatforms],
       currentStage: 0,
       acceptanceCriteria: [],
+      revision: 1,
       createdAt: now,
       updatedAt: now,
     };
     state.projects.push(project);
     store.addLifecycleEvent(project.id, 'IDEA', 'IDEA', 'project.created');
     broadcaster.publish({ type: 'project.created', payload: project }, state);
-    return reply.code(201).send(project);
+    return { project };
+  }
+
+  app.post<{ Body: { name?: string; slug?: string } }>('/api/v1/projects', async (req, reply) => {
+    const { name, slug } = req.body ?? {};
+    const result = createProjectInner(name ?? '', slug ?? '');
+    if (result.error) {
+      return reply.code(result.code ?? 400).send({ error: result.error });
+    }
+    return reply.code(201).send(result.project);
   });
 
   app.get<{ Params: { slug: string } }>('/api/v1/projects/:slug', async (req, reply) => {
@@ -117,6 +151,49 @@ export async function createApp(options: CreateAppOptions = {}) {
     };
   });
 
+  function patchProjectInner(
+    project: Project,
+    body: Partial<Project>,
+  ): { error?: string; code?: number; conflict?: { server: Project } } {
+    if (body.status !== undefined && !LIFECYCLE_STATUSES.includes(body.status)) {
+      return { error: 'unknown lifecycle status', code: 400 };
+    }
+    if (
+      body.currentStage !== undefined &&
+      (!Number.isInteger(body.currentStage) || body.currentStage < 0 || body.currentStage > 8)
+    ) {
+      return { error: 'currentStage must be an integer 0..8', code: 400 };
+    }
+    if (body.status === 'RELEASED' && project.status !== 'RELEASED') {
+      const transition = assertTransition(
+        'RELEASED',
+        state.gates
+          .filter((g) => g.projectId === project.id)
+          .map((g) => ({ code: g.code, status: g.status })),
+        project,
+      );
+      if (!transition.allowed) {
+        return { error: transition.reason, code: 409 };
+      }
+    }
+    if (body.targetPlatforms !== undefined && body.targetPlatforms.some((p) => !PLATFORMS.includes(p))) {
+      return { error: 'unknown platform', code: 400 };
+    }
+    const fromStatus = project.status;
+    if (body.name !== undefined) project.name = body.name;
+    if (body.status !== undefined) project.status = body.status;
+    if (body.currentStage !== undefined) project.currentStage = body.currentStage;
+    if (body.acceptanceCriteria !== undefined) project.acceptanceCriteria = body.acceptanceCriteria;
+    if (body.targetPlatforms !== undefined) project.targetPlatforms = body.targetPlatforms;
+    project.revision = (project.revision ?? 0) + 1;
+    project.updatedAt = new Date().toISOString();
+    if (body.status !== undefined && body.status !== fromStatus) {
+      store.addLifecycleEvent(project.id, fromStatus, body.status, 'status.changed', 'api');
+    }
+    broadcaster.publish({ type: 'project.updated', payload: project }, state);
+    return { };
+  }
+
   app.patch<{ Params: { slug: string }; Body: Partial<Project> }>(
     '/api/v1/projects/:slug',
     async (req, reply) => {
@@ -124,47 +201,75 @@ export async function createApp(options: CreateAppOptions = {}) {
       if (!project) {
         return reply.code(404).send({ error: 'project not found' });
       }
-      const body = req.body ?? {};
-      if (body.status !== undefined && !LIFECYCLE_STATUSES.includes(body.status)) {
-        return reply.code(400).send({ error: 'unknown lifecycle status' });
+      const result = patchProjectInner(project, req.body ?? {});
+      if (result.error) {
+        return reply.code(result.code ?? 400).send({ error: result.error });
       }
-      if (
-        body.currentStage !== undefined &&
-        (!Number.isInteger(body.currentStage) || body.currentStage < 0 || body.currentStage > 8)
-      ) {
-        return reply.code(400).send({ error: 'currentStage must be an integer 0..8' });
-      }
-      if (body.status === 'RELEASED' && project.status !== 'RELEASED') {
-        const transition = assertTransition(
-          'RELEASED',
-          state.gates
-            .filter((g) => g.projectId === project.id)
-            .map((g) => ({ code: g.code, status: g.status })),
-          project,
-        );
-        if (!transition.allowed) {
-          return reply.code(409).send({ error: transition.reason });
-        }
-      }
-      const fromStatus = project.status;
-      if (body.name !== undefined) project.name = body.name;
-      if (body.status !== undefined) project.status = body.status;
-      if (body.currentStage !== undefined) project.currentStage = body.currentStage;
-      if (body.acceptanceCriteria !== undefined) project.acceptanceCriteria = body.acceptanceCriteria;
-      if (body.targetPlatforms !== undefined) {
-        if (body.targetPlatforms.some((p) => !PLATFORMS.includes(p))) {
-          return reply.code(400).send({ error: 'unknown platform' });
-        }
-        project.targetPlatforms = body.targetPlatforms;
-      }
-      project.updatedAt = new Date().toISOString();
-      if (body.status !== undefined && body.status !== fromStatus) {
-        store.addLifecycleEvent(project.id, fromStatus, body.status, 'status.changed', 'api');
-      }
-      broadcaster.publish({ type: 'project.updated', payload: project }, state);
       return project;
     },
   );
+
+  app.post<{ Body: { operations?: SyncOperationInput[] } }>('/api/v1/sync', async (req, reply) => {
+    const operations = req.body?.operations;
+    if (!Array.isArray(operations)) {
+      return reply.code(400).send({ error: 'operations array is required' });
+    }
+    const results = [];
+    for (const operation of operations) {
+      if (!operation?.id || !operation.kind) {
+        results.push({ id: operation?.id ?? '', outcome: 'rejected', detail: 'id and kind are required' });
+        continue;
+      }
+      const previous = appliedSyncResults.get(operation.id);
+      if (previous) {
+        results.push({ id: operation.id, outcome: 'duplicate', projectId: previous.projectId });
+        continue;
+      }
+      if (operation.kind === 'create_project') {
+        const result = createProjectInner(operation.payload?.name ?? '', operation.payload?.slug ?? '');
+        if (result.error || !result.project) {
+          results.push({ id: operation.id, outcome: 'rejected', detail: result.error });
+        } else {
+          appliedSyncResults.set(operation.id, { outcome: 'applied', projectId: result.project.id });
+          results.push({ id: operation.id, outcome: 'applied', project: { ...result.project } });
+        }
+        continue;
+      }
+      if (operation.kind === 'patch_project') {
+        const slug = operation.payload?.slug;
+        const project = state.projects.find((p) => p.slug === slug);
+        if (!project) {
+          results.push({ id: operation.id, outcome: 'rejected', detail: 'project not found' });
+          continue;
+        }
+        const baseRevision = operation.payload?.baseRevision;
+        if (baseRevision !== undefined && (project.revision ?? 0) > baseRevision) {
+          results.push({ id: operation.id, outcome: 'conflict', server: { ...project } });
+          continue;
+        }
+        const patch: Partial<Project> = {};
+        if (operation.payload?.name !== undefined) patch.name = operation.payload.name;
+        if (operation.payload?.status !== undefined) patch.status = operation.payload.status;
+        if (operation.payload?.currentStage !== undefined) patch.currentStage = operation.payload.currentStage;
+        if (operation.payload?.acceptanceCriteria !== undefined) {
+          patch.acceptanceCriteria = operation.payload.acceptanceCriteria;
+        }
+        if (operation.payload?.targetPlatforms !== undefined) {
+          patch.targetPlatforms = operation.payload.targetPlatforms;
+        }
+        const result = patchProjectInner(project, patch);
+        if (result.error) {
+          results.push({ id: operation.id, outcome: 'rejected', detail: result.error });
+        } else {
+          appliedSyncResults.set(operation.id, { outcome: 'applied', projectId: project.id });
+          results.push({ id: operation.id, outcome: 'applied', project: { ...project } });
+        }
+        continue;
+      }
+      results.push({ id: operation.id, outcome: 'rejected', detail: `unknown operation kind: ${operation.kind}` });
+    }
+    return { results };
+  });
 
   app.get<{ Querystring: { projectId?: string } }>('/api/v1/events', async (req) => {
     const items = req.query.projectId
@@ -425,5 +530,10 @@ export async function createApp(options: CreateAppOptions = {}) {
     connection.on('error', () => broadcaster.remove(sender));
   });
 
-  return { app, store, broadcaster };
+  return {
+    app,
+    store,
+    broadcaster,
+    flushPersistence: () => persistence?.flush() ?? Promise.resolve(),
+  };
 }
