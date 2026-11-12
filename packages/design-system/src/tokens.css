@@ -1,0 +1,12 @@
+:root {
+  --nf-bg: #111827;
+  --nf-surface: #1b2436;
+  --nf-text: #e7ecf5;
+  --nf-accent: #18d6d1;
+  --nf-accent-alt: #0a6cff;
+  --nf-special: #f86e8f;
+  --nf-celadon: #a4d9bb;
+  --nf-dark-teal: #033438;
+  --nf-radius: 10px;
+  --nf-font: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+}

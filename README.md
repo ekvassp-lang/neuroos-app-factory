@@ -1,0 +1,86 @@
+# NEUROOS APP FACTORY
+
+**Universal Software Production System** — производственная платформа экосистемы NeuroOS,
+управляющая полным жизненным циклом программного продукта:
+
+```
+IDEA → SPECIFICATION → ARCHITECTURE → DEVELOPMENT → TESTING → AUDIT → BUILD → RELEASE → UPDATE
+```
+
+- **Версия:** 0.1.0
+- **Статус:** STAGE 0 — анализ и архитектурная подготовка (реализация не начата)
+- **Исполнительская среда:** Vibe Code (async agent); нормативный стандарт производства —
+  `STANDARD — UNIVERSAL MULTIPLATFORM APP BUILDER` («003 промпт»)
+
+## Что это
+
+APP FACTORY — самостоятельный продукт экосистемы NeuroOS. Это не генератор фрагментов кода
+и не панель управления, а производственная система: пользователь описывает идею, а фабрика
+через цепочку модулей доводит её до установочных пакетов на всех целевых платформах,
+с тестированием, аудитом, релизами и обновлениями.
+
+## Модули (см. MODULES.md)
+
+| Модуль | Назначение |
+|---|---|
+| IDEA STUDIO | создание и анализ идей |
+| SPECIFICATION ENGINE | генерация технических заданий |
+| AI ARCHITECT | проектирование архитектуры |
+| CODE BUILDER | управление разработкой исходного кода |
+| UI STUDIO | дизайн и пользовательские интерфейсы |
+| TEST CENTER | автоматизированное тестирование |
+| AUDIT CENTER | независимая проверка качества |
+| BUILD CENTER | сборка установочных файлов |
+| RELEASE HUB | управление релизами |
+| UPDATE MANAGER | управление обновлениями |
+| PROJECT MANAGER | управление всеми проектами |
+| ARTIFACT REGISTRY | реестр исходников, сборок, документов и контрольных сумм |
+| AI PROVIDER HUB | управление подключёнными ИИ-провайдерами |
+
+## Целевые результаты производства
+
+Web, PWA, Windows (EXE/MSI), macOS (APP/DMG/PKG), Linux (AppImage/DEB/RPM),
+Android (APK/AAB), iOS (IPA/проект подписанной сборки). Фактическая доступность формата
+зависит от стека продукта, ОС сборки, подписей и требований платформ — фабрика честно
+фиксирует это в плане сборки каждого проекта (NO FAKE SUCCESS).
+
+## Документы STAGE 0
+
+| Документ | Назначение |
+|---|---|
+| [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) | видение продукта |
+| [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) | требования (функциональные/нефункциональные) |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | архитектурная схема и обоснование стека |
+| [docs/MODULES.md](docs/MODULES.md) | границы и контракты модулей |
+| [docs/DATA_MODEL.md](docs/DATA_MODEL.md) | модель данных |
+| [docs/PROJECT_LIFECYCLE.md](docs/PROJECT_LIFECYCLE.md) | жизненный цикл проектов и правила переходов |
+| [docs/AI_PROVIDER_ARCHITECTURE.md](docs/AI_PROVIDER_ARCHITECTURE.md) | мультипровайдерная ИИ-архитектура |
+| [docs/ARTIFACT_REGISTRY.md](docs/ARTIFACT_REGISTRY.md) | реестр артефактов |
+| [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md) | модель безопасности |
+| [docs/QUALITY_GATES.md](docs/QUALITY_GATES.md) | контрольные точки G0–G6 |
+| [docs/IMPLEMENTATION_ROADMAP.md](docs/IMPLEMENTATION_ROADMAP.md) | план реализации STAGE 1–8 |
+| [docs/AUDIT.md](docs/AUDIT.md) | аудит STAGE 0: что проверялось, что подтверждено |
+
+
+## Быстрый старт (после STAGE 1)
+
+Требуется Node 22+ и pnpm 10+.
+
+```bash
+pnpm install
+pnpm typecheck   # сборка пакетов + проверка типов (5 проектов)
+pnpm build       # dist/ у 3 пакетов + apps/web/dist (Vite)
+pnpm test        # 11 тестов: core-contracts, design-system, runner, server
+```
+
+Сервер: `pnpm --filter @neuroos/server dev` (или `node apps/server/dist/main.js`) → `http://127.0.0.1:3000/healthz`.
+Веб-оболочка: `pnpm --filter @neuroos/web dev` (Vite dev-server).
+
+Схема БД: `migrations/0001_init.sql` (PostgreSQL 15+, применяется на STAGE 2).
+
+## Принципы
+
+- **NO FAKE SUCCESS** — каждый результат подтверждается проверяемым артефактом; статусы
+  DONE / PARTIAL / BLOCKED / NOT IMPLEMENTED / NOT TESTED проставляются честно.
+- **Artifact-driven development** — решение существует, только если существует его артефакт.
+- **Controlled execution** — необратимые и критические операции требуют разрешения.
