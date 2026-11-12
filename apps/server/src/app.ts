@@ -1,29 +1,54 @@
 import Fastify from 'fastify';
+import path from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
 import websocket from '@fastify/websocket';
-import type { FactorySettings, Job, Project } from '@neuroos/core-contracts';
+import type { ArtifactKind, FactorySettings, GateCode, Job, Project } from '@neuroos/core-contracts';
+import {
+  assertTransition,
+  approveGate,
+  evaluateAllGates,
+  evaluateGate,
+  GateApprovalError,
+  GATE_DEFINITIONS,
+  rejectGate,
+  type CheckKey,
+} from '@neuroos/gate-service';
+import { sha256 } from '@neuroos/runner';
 import {
   createBroadcaster,
   type Broadcaster,
 } from './broadcaster.js';
 import {
+  ARTIFACT_KINDS,
   createStore,
   defaultState,
   JOB_KINDS,
   LIFECYCLE_STATUSES,
   type FactoryState,
 } from './store.js';
+import {
+  artifactPath,
+  artifactStorageKey,
+  executeJob,
+  makeArtifactRecord,
+  type WorkerContext,
+} from './worker.js';
 
 const PLATFORMS = ['web', 'pwa', 'windows', 'macos', 'linux', 'android', 'ios'] as const;
 
 export interface CreateAppOptions {
   state?: FactoryState;
   broadcaster?: Broadcaster;
+  dataDir?: string;
+  aiComplete?: WorkerContext['aiComplete'];
 }
 
 export async function createApp(options: CreateAppOptions = {}) {
   const store = createStore(options.state ?? defaultState());
   const broadcaster = options.broadcaster ?? createBroadcaster();
   const { state } = store;
+  const dataDir = options.dataDir ?? path.resolve('data');
+  const workerContext: WorkerContext = { dataDir, aiComplete: options.aiComplete };
 
   const app = Fastify({ logger: false });
   await app.register(websocket);
@@ -31,7 +56,7 @@ export async function createApp(options: CreateAppOptions = {}) {
   app.get('/healthz', async () => ({
     status: 'ok',
     service: 'neuroos-app-factory-server',
-    version: '0.2.0',
+    version: '0.3.0',
   }));
 
   app.get('/api/v1/overview', async () => {
@@ -109,6 +134,18 @@ export async function createApp(options: CreateAppOptions = {}) {
       ) {
         return reply.code(400).send({ error: 'currentStage must be an integer 0..8' });
       }
+      if (body.status === 'RELEASED' && project.status !== 'RELEASED') {
+        const transition = assertTransition(
+          'RELEASED',
+          state.gates
+            .filter((g) => g.projectId === project.id)
+            .map((g) => ({ code: g.code, status: g.status })),
+          project,
+        );
+        if (!transition.allowed) {
+          return reply.code(409).send({ error: transition.reason });
+        }
+      }
       const fromStatus = project.status;
       if (body.name !== undefined) project.name = body.name;
       if (body.status !== undefined) project.status = body.status;
@@ -172,6 +209,51 @@ export async function createApp(options: CreateAppOptions = {}) {
     },
   );
 
+  app.post<{ Params: { id: string } }>('/api/v1/jobs/:id/run', async (req, reply) => {
+    const job = state.jobs.find((j) => j.id === req.params.id);
+    if (!job) {
+      return reply.code(404).send({ error: 'job not found' });
+    }
+    if (job.status !== 'queued') {
+      return reply.code(409).send({ error: `job is ${job.status} and cannot be run` });
+    }
+    const project = state.projects.find((p) => p.id === job.projectId);
+    if (!project) {
+      job.status = 'failed';
+      job.error = 'project not found';
+      job.finishedAt = new Date().toISOString();
+      broadcaster.publish({ type: 'job.updated', payload: job }, state);
+      return reply.code(404).send({ error: 'project not found' });
+    }
+    job.attempts += 1;
+    job.status = 'running';
+    job.startedAt = new Date().toISOString();
+    broadcaster.publish({ type: 'job.updated', payload: job }, state);
+
+    const result = await executeJob(job, project, workerContext);
+    const created = [];
+    for (const candidate of result.artifacts) {
+      const content = Buffer.from(candidate.content, 'utf8');
+      const target = artifactPath(dataDir, project.id, candidate.kind, candidate.version, candidate.filename);
+      await mkdir(path.dirname(target), { recursive: true });
+      await writeFile(target, content);
+      const artifact = makeArtifactRecord(
+        project.id,
+        candidate,
+        artifactStorageKey(project.id, candidate.kind, candidate.version, candidate.filename),
+        content.length,
+      );
+      state.artifacts.push(artifact);
+      created.push(artifact);
+      broadcaster.publish({ type: 'artifact.created', payload: artifact }, state);
+    }
+    job.status = result.status;
+    if (result.error) job.error = result.error;
+    job.finishedAt = new Date().toISOString();
+    broadcaster.publish({ type: 'job.updated', payload: job }, state);
+    return { job, artifacts: created, logLines: result.logLines, error: result.error };
+  });
+
   app.post<{ Params: { id: string } }>('/api/v1/jobs/:id/cancel', async (req, reply) => {
     const job = state.jobs.find((j) => j.id === req.params.id);
     if (!job) {
@@ -186,7 +268,117 @@ export async function createApp(options: CreateAppOptions = {}) {
     return job;
   });
 
-  app.get('/api/v1/artifacts', async () => ({ items: state.artifacts }));
+  app.get<{ Querystring: { projectId?: string } }>('/api/v1/artifacts', async (req) => {
+    const items = req.query.projectId
+      ? state.artifacts.filter((a) => a.projectId === req.query.projectId)
+      : state.artifacts;
+    return { items };
+  });
+
+  app.post<{ Params: { slug: string }; Body: { kind?: string; version?: string; filename?: string; contentBase64?: string; sha256?: string } }>(
+    '/api/v1/projects/:slug/artifacts',
+    async (req, reply) => {
+      const project = state.projects.find((p) => p.slug === req.params.slug);
+      if (!project) {
+        return reply.code(404).send({ error: 'project not found' });
+      }
+      const { kind, version, filename, contentBase64, sha256: declared } = req.body ?? {};
+      if (!kind || !version || !filename || !contentBase64) {
+        return reply.code(400).send({ error: 'kind, version, filename and contentBase64 are required' });
+      }
+      if (!ARTIFACT_KINDS.includes(kind as ArtifactKind)) {
+        return reply.code(400).send({ error: 'unknown artifact kind' });
+      }
+      const content = Buffer.from(contentBase64, 'base64');
+      const computed = sha256(content);
+      if (declared !== undefined && declared !== computed) {
+        return reply.code(409).send({ error: 'sha256 mismatch', declared, computed });
+      }
+      const target = artifactPath(dataDir, project.id, kind, version, filename);
+      await mkdir(path.dirname(target), { recursive: true });
+      await writeFile(target, content);
+      const artifact = makeArtifactRecord(
+        project.id,
+        { kind: kind as ArtifactKind, version, filename, content: content.toString('utf8') },
+        artifactStorageKey(project.id, kind, version, filename),
+        content.length,
+      );
+      state.artifacts.push(artifact);
+      broadcaster.publish({ type: 'artifact.created', payload: artifact }, state);
+      return reply.code(201).send(artifact);
+    },
+  );
+
+  app.get<{ Params: { slug: string } }>('/api/v1/projects/:slug/gates', async (req, reply) => {
+    const project = state.projects.find((p) => p.slug === req.params.slug);
+    if (!project) {
+      return reply.code(404).send({ error: 'project not found' });
+    }
+    return {
+      items: evaluateAllGates(gateInput(project)),
+      decisions: state.gates.filter((g) => g.projectId === project.id),
+    };
+  });
+
+  app.post<{ Params: { slug: string; code: string }; Body: { approver?: string } }>(
+    '/api/v1/projects/:slug/gates/:code/approve',
+    async (req, reply) => {
+      const project = state.projects.find((p) => p.slug === req.params.slug);
+      if (!project) {
+        return reply.code(404).send({ error: 'project not found' });
+      }
+      const code = req.params.code as GateCode;
+      if (!(code in GATE_DEFINITIONS)) {
+        return reply.code(400).send({ error: 'unknown gate code' });
+      }
+      const approver = req.body?.approver ?? 'owner';
+      const existing = state.gates.find((g) => g.projectId === project.id && g.code === code);
+      try {
+        const gate = approveGate(code, {
+          approver,
+          evaluation: evaluateGate(code, gateInput(project)),
+          existingGate: existing,
+        });
+        gate.projectId = project.id;
+        if (existing) {
+          Object.assign(existing, gate);
+        } else {
+          state.gates.push(gate);
+        }
+        broadcaster.publish({ type: 'gate.updated', payload: gate }, state);
+        return gate;
+      } catch (error) {
+        if (error instanceof GateApprovalError) {
+          return reply.code(409).send({ error: error.message, missing: error.missing });
+        }
+        throw error;
+      }
+    },
+  );
+
+  app.post<{ Params: { slug: string; code: string } }>(
+    '/api/v1/projects/:slug/gates/:code/reject',
+    async (req, reply) => {
+      const project = state.projects.find((p) => p.slug === req.params.slug);
+      if (!project) {
+        return reply.code(404).send({ error: 'project not found' });
+      }
+      const code = req.params.code as GateCode;
+      if (!(code in GATE_DEFINITIONS)) {
+        return reply.code(400).send({ error: 'unknown gate code' });
+      }
+      const existing = state.gates.find((g) => g.projectId === project.id && g.code === code);
+      const gate = rejectGate(code, existing);
+      gate.projectId = project.id;
+      if (existing) {
+        Object.assign(existing, gate);
+      } else {
+        state.gates.push(gate);
+      }
+      broadcaster.publish({ type: 'gate.updated', payload: gate }, state);
+      return gate;
+    },
+  );
 
   app.get('/api/v1/releases', async () => ({ items: state.releases }));
 
@@ -209,6 +401,22 @@ export async function createApp(options: CreateAppOptions = {}) {
     broadcaster.publish({ type: 'settings.updated', payload: state.settings }, state);
     return state.settings;
   });
+
+  function gateInput(project: Project) {
+    const projectArtifacts = state.artifacts.filter((a) => a.projectId === project.id);
+    return {
+      project: { acceptanceCriteria: project.acceptanceCriteria, status: project.status },
+      artifacts: projectArtifacts.map((a) => ({ kind: a.kind, sha256: a.sha256 })),
+      gates: state.gates
+        .filter((g) => g.projectId === project.id)
+        .map((g) => ({ code: g.code, status: g.status })),
+      checks: {
+        build_passed: projectArtifacts.some((a) => a.kind === 'build_log'),
+        tests_passed: projectArtifacts.some((a) => a.kind === 'test_report'),
+        security_scanned: projectArtifacts.some((a) => a.kind === 'audit_report'),
+      } as Partial<Record<CheckKey, boolean>>,
+    };
+  }
 
   app.get('/ws', { websocket: true }, (connection) => {
     const sender = (data: string) => connection.send(data);

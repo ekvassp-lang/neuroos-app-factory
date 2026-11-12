@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import type {
   Artifact,
+  ArtifactKind,
   FactorySettings,
+  Gate,
   Job,
   LifecycleEvent,
   LifecycleStatus,
@@ -15,6 +17,8 @@ export interface StoreEvent {
     | 'project.updated'
     | 'job.created'
     | 'job.updated'
+    | 'gate.updated'
+    | 'artifact.created'
     | 'settings.updated';
   payload: unknown;
 }
@@ -23,10 +27,25 @@ export interface FactoryState {
   projects: Project[];
   events: LifecycleEvent[];
   jobs: Job[];
+  gates: Gate[];
   artifacts: Artifact[];
   releases: Release[];
   settings: FactorySettings;
 }
+
+export const ARTIFACT_KINDS: ArtifactKind[] = [
+  'source_ref',
+  'spec',
+  'architecture',
+  'diagram',
+  'test_report',
+  'audit_report',
+  'build_log',
+  'installer',
+  'checksum',
+  'release_notes',
+  'documentation',
+];
 
 export type StateListener = (event: StoreEvent) => void;
 
@@ -112,6 +131,7 @@ export function defaultState(): FactoryState {
     projects: [],
     events: [],
     jobs: [],
+    gates: [],
     artifacts: [],
     releases: [],
     settings: { ...DEFAULT_SETTINGS },

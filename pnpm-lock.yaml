@@ -20,9 +20,18 @@ importers:
       '@fastify/websocket':
         specifier: ^11.3.7
         version: 11.3.7
+      '@neuroos/ai-provider':
+        specifier: workspace:*
+        version: link:../../packages/ai-provider
       '@neuroos/core-contracts':
         specifier: workspace:*
         version: link:../../packages/core-contracts
+      '@neuroos/gate-service':
+        specifier: workspace:*
+        version: link:../../packages/gate-service
+      '@neuroos/runner':
+        specifier: workspace:*
+        version: link:../../packages/runner
       fastify:
         specifier: ^5.0.0
         version: 5.12.8
@@ -92,6 +101,19 @@ importers:
         specifier: ^2.1.0
         version: 2.1.9(@types/node@22.20.5)(jsdom@31.0.0)
 
+  packages/ai-provider:
+    dependencies:
+      '@neuroos/core-contracts':
+        specifier: workspace:*
+        version: link:../core-contracts
+    devDependencies:
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@22.20.5)(jsdom@31.0.0)
+
   packages/core-contracts:
     devDependencies:
       typescript:
@@ -102,6 +124,19 @@ importers:
         version: 2.1.9(@types/node@22.20.5)(jsdom@31.0.0)
 
   packages/design-system:
+    devDependencies:
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.0
+        version: 2.1.9(@types/node@22.20.5)(jsdom@31.0.0)
+
+  packages/gate-service:
+    dependencies:
+      '@neuroos/core-contracts':
+        specifier: workspace:*
+        version: link:../core-contracts
     devDependencies:
       typescript:
         specifier: ^5.6.0

@@ -185,3 +185,60 @@
 API, создание проектов и постановка задач реально работают, статусы приходят по
 WebSocket. До полного DONE: исполнение задач (STAGE 3), персистентность,
 утверждение GATE 2 владельцем.
+
+---
+
+# STAGE 3 — CORE FUNCTIONALITY: аудит выполнения
+
+## 1. Выполненные команды (фактические)
+
+| Команда | Результат |
+|---|---|
+| `pnpm install` | OK — gate-service и ai-provider зарегистрированы в lockfile |
+| `pnpm --filter @neuroos/gate-service typecheck` | OK |
+| `pnpm --filter @neuroos/gate-service test` | OK — 12 тестов |
+| `pnpm --filter @neuroos/ai-provider typecheck` | OK |
+| `pnpm --filter @neuroos/ai-provider test` | OK — 12 тестов (мок fetch) |
+| `pnpm typecheck` (все 7 проектов) | OK |
+| `pnpm build` | OK |
+| `pnpm test` | OK — 54 теста в монорепо |
+| Живой smoke-тест (node, loopback :3457) | OK — полный пайплайн: проект → критерии → code_task (каркас + git init) → build_run (node index.js, exit 0) → test_run (node --test, exit 0) → артефакты source_ref/build_log/test_report → ai_task честно failed → G2/G3 eligible → spec-артефакт → G0 approved → PATCH RELEASED → **409 отклонён** |
+
+## 2. Что реализовано
+
+**packages/gate-service (@neuroos/gate-service):** определения G0–G6 из QUALITY_GATES.md (обязательные артефакты, проверки, утверждающий, критерии); `evaluateGate`/`evaluateAllGates` (missing в формате `artifact:<kind>` / `check:<key>`); `approveGate` (owner-only для G0/G6, отказ через `GateApprovalError` с перечнем недостающего); `rejectGate`; `assertTransition` (RELEASED требует G6 approved + все критерии DONE). 12 тестов.
+
+**packages/ai-provider (@neuroos/ai-provider):** контракт `AIProvider.complete({model, taskKind, messages, timeoutMs, idempotencyKey}) → AIResult` (дискриминированное объединение ok/error|rate_limited|timeout); `MistralProvider` (fetch api.mistral.ai, AbortController-таймаут, 429 → rate_limited); `smokeTest` (обязательный проверочный вызов, §4 AI_PROVIDER_ARCHITECTURE.md); `ProviderRegistry` — провайдеры отключены до успешного smoke-теста, хранится только `key_ref`, ключ никогда не логируется (тест гигиены ключа). 12 тестов на мокнутом fetch.
+
+**Сервер (apps/server) — API v0.3.0:**
+- `state.gates` в FactoryState; события `gate.updated`, `artifact.created` в шине и WS-броадкастах.
+- Гейты: `GET /api/v1/projects/:slug/gates` (7 оценок + сохранённые решения), `POST .../gates/:code/approve` (409 с missing при отказе), `POST .../gates/:code/reject`.
+- Жёсткое правило релиза: `PATCH /api/v1/projects/:slug` со статусом RELEASED → **409** без G6 approved и критериев DONE (assertTransition).
+- Реестр артефактов: `POST /api/v1/projects/:slug/artifacts` — contentBase64 + заявленный sha256, **409 при несовпадении** SHA-256, запись файла в `data/artifacts/{projectId}/{kind}/{version}/{filename}`; `GET /api/v1/artifacts?projectId=`.
+- Воркер задач: `POST /api/v1/jobs/:id/run` — code_task (каркас package.json/index.js/index.test.js + git init через RUNNER), build_run (`node index.js`), test_run (`node --test`), регистрация артефактов build_log/test_report/source_ref; AI-задачи без провайдера → **честный failed** с причиной; audit_run/release/update_publish → честный failed «не реализована в STAGE 3».
+
+**UI (apps/web):** панель гейтов G0–G6 в Project Workspace (eligible, missing, утвердить/отклонить), кнопка «Запустить» и отображение ошибок задач в Build Center, обновлённые честные подсказки.
+
+## 3. Честные статусы
+
+| Компонент | Статус |
+|---|---|
+| Gate-сервис G0–G6 | DONE — 12 тестов + живой smoke |
+| AI-провайдер слой (контракт, smoke, реестр) | DONE — 12 тестов на моках |
+| Подключение реального ИИ-провайдера | BLOCKED — нет ключей; smoke-тест к api.mistral.ai не проводился |
+| Воркер задач (code/build/test) | DONE — живой smoke: каркас собран и протестирован фактически |
+| Реестр артефактов с SHA-256 | DONE — mismatch → 409 подтверждён |
+| RELEASED-защита | DONE — 409 подтверждён живым тестом |
+| PostgreSQL/pg-boss персистентность | NOT TESTED — схема 0001_init.sql не применялась (нет PG в песочнице); состояние in-memory + файлы |
+| Аутентификация/роли | NOT IMPLEMENTED — утверждение гейтов идёт от имени owner без проверки личности |
+| audit_run / release / update_publish | NOT IMPLEMENTED — честный failed (STAGE 4+) |
+| Windows/macOS/iOS сборки | BLOCKED — Linux-песочница (STAGE 5) |
+
+## 4. Подтверждённый статус этапа
+
+**STAGE 3 — DONE (по локальной верификации) / PARTIAL (в целом).**
+Работающий конвейер «идея → каркас проекта → тесты → гейты» (GATE 3 фабрики по роадмапу):
+задачи исполняются фактически через RUNNER, артефакты регистрируются с контролем SHA-256,
+гейты оцениваются и утверждаются по правилам QUALITY_GATES.md, преждевременный RELEASED
+отклоняется сервером. До полного DONE этапа: персистентность (STAGE 4), реальный ИИ-провайдер
+(ключи от владельца), роли/аутентификация, утверждение гейтов владельцем.

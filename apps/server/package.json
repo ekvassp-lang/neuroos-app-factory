@@ -10,7 +10,10 @@
   },
   "dependencies": {
     "@fastify/websocket": "^11.3.7",
+    "@neuroos/ai-provider": "workspace:*",
     "@neuroos/core-contracts": "workspace:*",
+    "@neuroos/gate-service": "workspace:*",
+    "@neuroos/runner": "workspace:*",
     "fastify": "^5.0.0"
   },
   "devDependencies": {

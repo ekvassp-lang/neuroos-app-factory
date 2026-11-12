@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useApi } from '../hooks.js';
 import { api, ApiError } from '../api.js';
-import type { ProjectDetail } from '../api.js';
+import type { GatesResponse, ProjectDetail } from '../api.js';
 import type { LifecycleStatus } from '@neuroos/core-contracts';
 import { Card, EmptyState, ErrorBox, Loader, StatusBadge } from '../components/ui.js';
 
@@ -15,8 +15,10 @@ const STATUSES: LifecycleStatus[] = [
 export function ProjectWorkspace() {
   const { slug = '' } = useParams();
   const { data, error, loading, reload } = useApi<ProjectDetail>(() => api.project(slug), [slug]);
+  const gates = useApi<GatesResponse>(() => api.gates(slug), [slug]);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [gateError, setGateError] = useState<string | null>(null);
 
   const changeStatus = async (status: LifecycleStatus) => {
     setSaveError(null);
@@ -35,6 +37,21 @@ export function ProjectWorkspace() {
   if (error || !data) return <ErrorBox message={error ?? 'нет данных'} onRetry={reload} />;
 
   const { project, events, jobs } = data;
+
+  const decideGate = async (code: string, action: 'approve' | 'reject') => {
+    setGateError(null);
+    try {
+      if (action === 'approve') {
+        await api.approveGate(slug, code, 'owner');
+      } else {
+        await api.rejectGate(slug, code);
+      }
+      gates.reload();
+      reload();
+    } catch (err) {
+      setGateError(err instanceof ApiError ? `${err.status}: ${err.message}` : String(err));
+    }
+  };
 
   return (
     <div>
@@ -102,6 +119,55 @@ export function ProjectWorkspace() {
             ))}
           </ul>
         )}
+      </Card>
+      <Card title="Контрольные точки (G0–G6)">
+        {gates.error && <ErrorBox message={gates.error} onRetry={gates.reload} />}
+        {gateError && (
+          <p className="nf-error-text" role="alert">
+            {gateError}
+          </p>
+        )}
+        {gates.data ? (
+          <table className="nf-table">
+            <thead>
+              <tr>
+                <th>Гейт</th>
+                <th>Готов</th>
+                <th>Недостаёт</th>
+                <th>Решение</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {gates.data.items.map((g) => {
+                const decision = gates.data?.decisions.find((d) => d.code === g.code);
+                return (
+                  <tr key={g.code}>
+                    <td>
+                      <strong>{g.code}</strong>
+                    </td>
+                    <td>{g.eligible ? 'да' : 'нет'}</td>
+                    <td>{g.missing.length > 0 ? g.missing.join(', ') : '—'}</td>
+                    <td>{decision ? <StatusBadge value={decision.status} /> : '—'}</td>
+                    <td>
+                      <button type="button" className="nf-button" onClick={() => decideGate(g.code, 'approve')}>
+                        Утвердить
+                      </button>{' '}
+                      <button type="button" className="nf-button" onClick={() => decideGate(g.code, 'reject')}>
+                        Отклонить
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        ) : (
+          !gates.error && <Loader />
+        )}
+        <p className="nf-empty">
+          Утверждение выполняется от имени owner (аутентификация ролей не реализована в STAGE 3).
+        </p>
       </Card>
       <Card title="История жизненного цикла">
         {events.length === 0 ? (

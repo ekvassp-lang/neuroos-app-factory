@@ -1,6 +1,7 @@
 import type {
   Artifact,
   FactorySettings,
+  Gate,
   Job,
   LifecycleEvent,
   Project,
@@ -44,6 +45,24 @@ export interface ProjectDetail {
   jobs: Job[];
 }
 
+export interface GateEvaluation {
+  code: string;
+  eligible: boolean;
+  missing: string[];
+}
+
+export interface GatesResponse {
+  items: GateEvaluation[];
+  decisions: Gate[];
+}
+
+export interface JobRunResponse {
+  job: Job;
+  artifacts: Artifact[];
+  logLines: string[];
+  error?: string;
+}
+
 export interface ListResponse<T> {
   items: T[];
 }
@@ -61,6 +80,12 @@ export const api = {
   createJob: (projectId: string, kind: Job['kind']) =>
     request<Job>('POST', '/api/v1/jobs', { projectId, kind }),
   cancelJob: (id: string) => request<Job>('POST', `/api/v1/jobs/${id}/cancel`),
+  runJob: (id: string) => request<JobRunResponse>('POST', `/api/v1/jobs/${id}/run`),
+  gates: (slug: string) => request<GatesResponse>('GET', `/api/v1/projects/${slug}/gates`),
+  approveGate: (slug: string, code: string, approver: string) =>
+    request<Gate>('POST', `/api/v1/projects/${slug}/gates/${code}/approve`, { approver }),
+  rejectGate: (slug: string, code: string) =>
+    request<Gate>('POST', `/api/v1/projects/${slug}/gates/${code}/reject`),
   artifacts: () => request<ListResponse<Artifact>>('GET', '/api/v1/artifacts'),
   releases: () => request<ListResponse<Release>>('GET', '/api/v1/releases'),
   settings: () => request<FactorySettings>('GET', '/api/v1/settings'),

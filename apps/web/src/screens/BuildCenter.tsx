@@ -47,6 +47,19 @@ export function BuildCenter() {
     }
   };
 
+  const run = async (id: string) => {
+    setFormError(null);
+    try {
+      const result = await api.runJob(id);
+      if (result.error) {
+        setFormError(`Задача завершилась с ошибкой: ${result.error}`);
+      }
+      jobs.reload();
+    } catch (err) {
+      setFormError(err instanceof ApiError ? `${err.status}: ${err.message}` : String(err));
+    }
+  };
+
   return (
     <div>
       <h1>Build Center</h1>
@@ -67,7 +80,14 @@ export function BuildCenter() {
             <tbody>
               {items.map((j) => (
                 <tr key={j.id}>
-                  <td>{j.kind}</td>
+                  <td>
+                    {j.kind}
+                    {j.error && (
+                      <p className="nf-error-text" role="alert">
+                        {j.error}
+                      </p>
+                    )}
+                  </td>
                   <td>
                     <StatusBadge value={j.status} />
                   </td>
@@ -76,6 +96,11 @@ export function BuildCenter() {
                   </td>
                   <td>{j.createdAt ? new Date(j.createdAt).toLocaleString('ru-RU') : '—'}</td>
                   <td>
+                    {j.status === 'queued' && (
+                      <button type="button" className="nf-button" onClick={() => run(j.id)}>
+                        Запустить
+                      </button>
+                    )}
                     {(j.status === 'queued' || j.status === 'running') && (
                       <button type="button" className="nf-button" onClick={() => cancel(j.id)}>
                         Отменить
@@ -121,8 +146,9 @@ export function BuildCenter() {
           </button>
         </form>
         <p className="nf-empty">
-          Исполнение задач через RUNNER и pg-boss реализуется на STAGE 3; сейчас задачи честно
-          остаются в статусе queued.
+          code_task создаёт каркас проекта (package.json, index.js, тест, git init), build_run и
+          test_run исполняются через RUNNER; AI-задачи требуют подключённого провайдера
+          (smoke-тест + key_ref) и честно падают без него.
         </p>
       </Card>
     </div>
