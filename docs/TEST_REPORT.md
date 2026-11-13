@@ -104,3 +104,16 @@
   api и офлайн-очередь отправляют `Authorization: Bearer`; WebSocket в
   useLiveEvents подключается с `?token=`; Settings — карточка «Доступ (токен
   API)» (сохранить/удалить, честная пометка о localStorage) (1 тест).
+
+# Дополнение 3 (пост-STAGE 8) — IndexedDB-адаптер офлайн-очереди (3 новых теста, итого 100)
+
+- `packages/sync-engine` — `IndexedDBKV` (KVAdapter через IndexedDB: get/set/
+  delete/keys, переиспользование соединения); dev-зависимость `fake-indexeddb`
+  для честных тестов вне браузера.
+- Тесты (3): store/read/delete/keys; персистентность между экземплярами
+  адаптера; работа как хранилище OperationQueue (enqueue → pendingCount →
+  markSynced).
+- `apps/web/offlineQueue.ts` — очередь теперь в IndexedDB (`nf-sync-kv`),
+  fallback на LocalStorageKV, если indexedDB недоступен (jsdom-тесты идут по
+  fallback-ветке). Честная пометка: очередь из старого localStorage не
+  переносится автоматически.

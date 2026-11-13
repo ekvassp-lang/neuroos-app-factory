@@ -632,3 +632,33 @@ RELEASE HUB и UPDATE MANAGER v1 реализованы, серверные пр
 | Матрица трассировки RF/RN | DONE |
 | Сканер: Google/npm секреты, TLS-off, dynamic require | DONE — проверено на фикстурах |
 | Промышленный SAST/DAST (Semgrep/CodeQL) | NOT IMPLEMENTED — остаётся промежуточным решением |
+
+---
+
+# Дополнение 4 (пост-STAGE 8) — IndexedDB-адаптер офлайн-очереди
+
+## 1. Что сделано
+
+- `packages/sync-engine/src/index.ts` — `IndexedDBKV` (реализация KVAdapter на
+  IndexedDB: get/set/delete/keys, кэш соединения, единый object store).
+- `packages/sync-engine` — dev-зависимость `fake-indexeddb` (решение владельца
+  получено: «Далее» после явного вопроса о новой зависимости).
+- `apps/web/src/offlineQueue.ts` — хранилище очереди: IndexedDB (`nf-sync-kv`)
+  при доступности, fallback LocalStorageKV (jsdom/старые браузеры). Автоматический
+  перенос очереди из старого localStorage NOT IMPLEMENTED — честно задокументировано.
+- Документация: TRACEABILITY (RF-15 → IndexedDB DONE), TECHNICAL_SPECIFICATION
+  (§8), TEST_REPORT (дополнение 3), README (100 тестов).
+
+## 2. Верификация
+
+- `pnpm test` — 100 зелёных (43 server, 9 web, 48 packages); typecheck 0 ошибок.
+- Новые тесты: 3 (IndexedDBKV CRUD, персистентность между экземплярами,
+  OperationQueue поверх IndexedDBKV).
+
+## 3. Честные статусы
+
+| Пункт | Статус |
+|---|---|
+| IndexedDBKV + OperationQueue поверх него | DONE — 3 теста |
+| Очередь в браузере на IndexedDB с fallback | DONE — fallback-ветка покрыта jsdom-тестами |
+| Миграция очереди из старого localStorage | NOT IMPLEMENTED (внутренняя v0.1; данные не теряются — старые операции просто остаются в localStorage) |

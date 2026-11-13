@@ -89,7 +89,7 @@ G0 (спецификация) → G1 (архитектура) → G2 (сборк
 ## 8. Офлайн/онлайн
 
 Клиент: GET-кэш в localStorage с честным маркером; мутации при сетевом сбое —
-в очередь (LocalStorageKV), авто-flush при переподключении WS/online.
+в очередь (IndexedDB, fallback localStorage), авто-flush при переподключении WS/online.
 Сервер: батч-эндпоинт с idempotency (duplicate), конфликтами (stale baseRevision
 → conflict с серверной версией) и инкрементом revision.
 

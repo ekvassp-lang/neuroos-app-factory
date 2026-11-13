@@ -25,6 +25,56 @@ export class MemoryKV implements KVAdapter {
   }
 }
 
+export class IndexedDBKV implements KVAdapter {
+  private db: IDBDatabase | null = null;
+
+  constructor(
+    private dbName = 'nf-sync-kv',
+    private storeName = 'kv',
+  ) {}
+
+  private async open(): Promise<IDBDatabase> {
+    if (this.db) return this.db;
+    this.db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open(this.dbName, 1);
+      request.onupgradeneeded = () => {
+        if (!request.result.objectStoreNames.contains(this.storeName)) {
+          request.result.createObjectStore(this.storeName);
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error ?? new Error('indexedDB open failed'));
+    });
+    return this.db;
+  }
+
+  private async withStore<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
+    const db = await this.open();
+    return new Promise<T>((resolve, reject) => {
+      const tx = db.transaction(this.storeName, mode);
+      const request = run(tx.objectStore(this.storeName));
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error ?? new Error('indexedDB request failed'));
+    });
+  }
+
+  async get(key: string): Promise<string | null> {
+    return (await this.withStore('readonly', (store) => store.get(key) as IDBRequest<string | undefined>)) ?? null;
+  }
+
+  async set(key: string, value: string): Promise<void> {
+    await this.withStore('readwrite', (store) => store.put(value, key) as IDBRequest<IDBValidKey>);
+  }
+
+  async delete(key: string): Promise<void> {
+    await this.withStore('readwrite', (store) => store.delete(key) as IDBRequest<undefined>);
+  }
+
+  async keys(): Promise<string[]> {
+    return (await this.withStore('readonly', (store) => store.getAllKeys() as IDBRequest<IDBValidKey[]>)).map(String);
+  }
+}
+
 export class LocalStorageKV implements KVAdapter {
   constructor(private prefix = 'nf-kv:') {}
 

@@ -22,7 +22,7 @@ NOT IMPLEMENTED / NOT TESTED.
 | RF-12 | RELEASE HUB: версии, notes, каналы, RELEASE_CANDIDATE→RELEASED | POST/GET `/api/v1/releases`, правила каналов ↔ G5/G6, экран ReleaseCenter | stage7.test (6) | **DONE** |
 | RF-13 | UPDATE MANAGER: проверка/доставка обновлений, удаление средствами ОС | GET `/api/v1/updates/latest` (семвер-сравнение), панель проверки | stage7.test; INSTALLATION.md (удаление) | **PARTIAL** — проверка DONE; доставка/автообновление NOT IMPLEMENTED (нужны ключи подписи, Tauri updater) |
 | RF-14 | Матрица платформ по умолчанию | `targetPlatforms` (7 платформ), `defaultPlatforms` в settings | core-contracts Platform (7) | **PARTIAL** — Web/PWA/Win/macOS/Linux DONE; Android/iOS NOT IMPLEMENTED |
-| RF-15 | Offline/Online: локальная БД, очередь, восстановление, синхронизация, конфликты, защита от дублей | `packages/sync-engine` (OperationQueue, LWW, idempotency), `persistence.ts`, `/api/v1/sync`, localStorage-кэш UI | 12 тестов sync-engine, stage4.test (6), offline-тесты web | **DONE** — localStorage как локальное хранилище; IndexedDB-адаптер NOT IMPLEMENTED |
+| RF-15 | Offline/Online: локальная БД, очередь, восстановление, синхронизация, конфликты, защита от дублей | `packages/sync-engine` (OperationQueue, LWW, idempotency), `persistence.ts`, `/api/v1/sync`, localStorage-кэш UI | 15 тестов sync-engine (вкл. IndexedDBKV), stage4.test (6), offline-тесты web | **DONE** — IndexedDB-адаптер (`IndexedDBKV`) с fallback на localStorage; очередь офлайн-операций в браузере хранится в IndexedDB |
 | RF-16 | AI PROVIDER HUB: провайдеры, ключи, назначение модели, история, ошибки/лимиты | `packages/ai-provider` (ProviderRegistry, key_ref, smoke-test), экран AIWorkspace | 12 тестов ai-provider | **PARTIAL** — каркас DONE; реальные провайдеры BLOCKED (нет ключей) |
 | RF-17 | Запрещено заявлять интеграции без проверки | smoke-test обязателен до включения провайдера | ai-provider тесты gating | **DONE** (процесс) |
 | RF-18 | ARTIFACT REGISTRY: типы артефактов, версии, целостность, доступ, восстановление | POST артефактов с SHA-256 (409), 11 ArtifactKind, `releases/` каталог | stage3/stage7 тесты; checksums-sha256.txt | **DONE** — разграничение доступа к артефактам через роли API v0.7.0 |
@@ -45,5 +45,5 @@ NOT IMPLEMENTED / NOT TESTED.
 - **DONE:** 11 (RF-3, RF-5, RF-6, RF-7, RF-8, RF-9, RF-11, RF-12, RF-17, RF-18, RF-19; RN-1, RN-2, RN-4, RN-5, RN-6, RN-7)
 - **PARTIAL:** 6 (RF-1, RF-2, RF-4, RF-10, RF-13, RF-14, RF-16; RN-3)
 - **BLOCKED (нужно владельцу):** AI-анализ (ключи), реальные AI-провайдеры (ключи), автообновление (сертификаты)
-- **NOT IMPLEMENTED:** Android/iOS, IndexedDB-адаптер, секретное хранилище, доставка обновлений
+- **NOT IMPLEMENTED:** Android/iOS, секретное хранилище, доставка обновлений
 - **NOT TESTED:** PostgreSQL/pg-boss, интерактивные установщики на реальных ОС

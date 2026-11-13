@@ -1,4 +1,11 @@
-import { LocalStorageKV, OperationQueue, SyncClient, type SyncTransportResult } from '@neuroos/sync-engine';
+import {
+  IndexedDBKV,
+  LocalStorageKV,
+  OperationQueue,
+  SyncClient,
+  type KVAdapter,
+  type SyncTransportResult,
+} from '@neuroos/sync-engine';
 import { getApiToken } from './api.js';
 
 export class QueuedOfflineError extends Error {
@@ -14,7 +21,12 @@ type CountListener = (count: number) => void;
 
 const listeners = new Set<CountListener>();
 
-const queue = new OperationQueue(new LocalStorageKV('nf-queue:'));
+function createQueueStorage(): KVAdapter {
+  if (typeof indexedDB !== 'undefined') return new IndexedDBKV('nf-sync-kv', 'kv');
+  return new LocalStorageKV('nf-queue:');
+}
+
+const queue = new OperationQueue(createQueueStorage());
 
 const transport = async (operation: {
   id: string;
