@@ -3,5 +3,6 @@ dist/
 *.tsbuildinfo
 .env
 .env.*
-releases/
+releases/*
+!releases/README.md
 coverage/

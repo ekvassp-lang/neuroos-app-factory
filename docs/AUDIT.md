@@ -353,3 +353,56 @@ PostgreSQL-персистентность (нужен PG).
 Кроссплатформенная оболочка, PWA и офлайн-очередь в UI реализованы и проверены тестами и сборкой.
 До полного DONE: фактический прогон CI-матрицы на трёх ОС (требует решения владельца — многоминутная сборка),
 Android/iOS (STAGE 6).
+
+---
+
+# STAGE 6 — Testing & Security (аудит)
+
+## 1. Что сделано
+
+**Полный прогон тестов:** 81 тест зелёный (14 файлов): core-contracts 1, design-system 1, gate-service 12, ai-provider 12, runner 7, sync-engine 12, server 28, web 8. Функциональные, интеграционные, offline/online сценарии — пройдены.
+
+**Новые тесты (apps/server/src/stage6.test.ts, 4 теста):**
+- Восстановление из бэкапа: снапшот → копия → restore в чистый инстанс (имя, статус, revision точны).
+- Повреждённый снапшот: честный старт с default state без падения.
+- Perf-smoke: 100 созданий проектов + листинг < 10 c; sync-батч 50 операций, все applied.
+
+**SAST:** `scripts/security-scan.mjs` (режим sast) — eval/new Function/dangerouslySetInnerHTML/innerHTML/exec-интерполяция/shell:true; 0 находок. TypeScript strict везде; typecheck 0 ошибок.
+
+**Сканер секретов:** тот же скрипт (режим secrets) — приватные ключи, ghp_/github_pat_, AKIA, xox*, Bearer, env-присваивания; контекстный фильтр для 32-символьных ключей (устранён false positive на TS-идентификаторе). 0 находок по репозиторию; секретных файлов в git нет. Self-test на фикстуре с AWS-ключом — детект корректный.
+
+**Аудит зависимостей:** `pnpm audit --prod` нашёл 2 moderate (react-router < 7.18.0, транзитивно через react-router-dom). Устранено: react-router-dom ^6.30.6 → ^7.18.0; повторный аудит — 0 уязвимостей; тесты и typecheck после обновления зелёные.
+
+**Права доступа:** world-writable файлов нет; .gitignore покрывает .env/.env.*, node_modules, dist, coverage; owner-only G0/G6 и RELEASED-правило покрыты тестами. Исправлен дефект: `releases/` в .gitignore исключал releases/README.md из репозитория — заменено на `releases/*` + `!releases/README.md`.
+
+**CI:** в ci.yml добавлены шаги «Security scan (secrets + SAST)» (блокирующий) и «Dependency audit» (continue-on-error, честно виден в логе).
+
+**Отчёт:** `docs/TEST_REPORT.md` — полный тест-отчёт этапа.
+
+## 2. Верификация
+
+- `pnpm typecheck` — 0 ошибок; `pnpm build` — OK; `pnpm test` — 81 зелёный.
+- `node scripts/security-scan.mjs all` — secrets OK, sast OK.
+- `pnpm audit --prod` — No known vulnerabilities found.
+
+## 3. Честные статусы
+
+| Компонент | Статус |
+|---|---|
+| Функциональные/интеграционные тесты | DONE — 81 зелёный |
+| Восстановление из бэкапа | DONE — 2 теста (restore + corrupted) |
+| Perf-smoke | DONE — 2 теста со свободными бюджетами |
+| SAST (паттерн-сканер) | DONE — 0 находок, в CI |
+| Сканер секретов | DONE — 0 находок, self-test пройден, в CI |
+| Аудит зависимостей | DONE — 2 moderate найдены и устранены; шаг в CI |
+| Проверка прав доступа | DONE — файлы/gitignore/ворота |
+| Нагрузочное тестирование | NOT TESTED — вне объёма smoke |
+| PostgreSQL/pg-boss | NOT TESTED — нет PG в песочнице |
+| SAST класса Semgrep/CodeQL, DAST | NOT IMPLEMENTED — собственный паттерн-сканер как промежуточное решение |
+| Мобильные платформы (Android/iOS) | NOT IMPLEMENTED — нужны тулчейны |
+
+## 4. Подтверждённый статус этапа
+
+**STAGE 6 — DONE (по локальной верификации) / PARTIAL (в целом).**
+Критических дефектов не обнаружено; 2 moderate-уязвимости зависимостей устранены в рамках этапа.
+До полного DONE: нагрузочное тестирование, PG-персистентность, промышленные SAST/DAST-сканеры, мобильные платформы.

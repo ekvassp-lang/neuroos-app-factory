@@ -8,7 +8,7 @@ IDEA → SPECIFICATION → ARCHITECTURE → DEVELOPMENT → TESTING → AUDIT �
 ```
 
 - **Версия:** 0.1.0
-- **Статус:** STAGE 5 — Multiplatform (Tauri 2, PWA, офлайн-очередь в UI, CI-матрица десктоп-сборок; детали в [docs/AUDIT.md](docs/AUDIT.md))
+- **Статус:** STAGE 6 — Testing & Security (81 тест, SAST + сканер секретов в CI, аудит зависимостей, бэкап-восстановление; детали в [docs/TEST_REPORT.md](docs/TEST_REPORT.md) и [docs/AUDIT.md](docs/AUDIT.md))
 - **Исполнительская среда:** Vibe Code (async agent); нормативный стандарт производства —
   `STANDARD — UNIVERSAL MULTIPLATFORM APP BUILDER` («003 промпт»)
 

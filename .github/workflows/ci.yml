@@ -19,3 +19,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm test
+      - name: Security scan (secrets + SAST)
+        run: node scripts/security-scan.mjs all
+      - name: Dependency audit
+        run: pnpm audit --prod
+        continue-on-error: true
