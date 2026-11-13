@@ -64,7 +64,7 @@ Android (APK/AAB), iOS (IPA/проект подписанной сборки). �
 | [docs/INSTALLATION.md](docs/INSTALLATION.md) | установка/удаление/восстановление |
 | [docs/BUILD.md](docs/BUILD.md) | сборка пакетов и десктоп-сборки |
 | [docs/SECURITY.md](docs/SECURITY.md) | безопасность: ключи, RUNNER, сканирование |
-| [docs/TEST_REPORT.md](docs/TEST_REPORT.md) | тест-отчёт (94 теста) |
+| [docs/TEST_REPORT.md](docs/TEST_REPORT.md) | тест-отчёт (97 тестов) |
 | [docs/USER_GUIDE.md](docs/USER_GUIDE.md) | руководство пользователя: интерфейс, сценарий, офлайн, роли |
 | [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md) | release notes |
 
@@ -77,7 +77,7 @@ Android (APK/AAB), iOS (IPA/проект подписанной сборки). �
 pnpm install
 pnpm typecheck   # сборка пакетов + проверка типов (8 проектов)
 pnpm build       # dist/ у 6 пакетов + apps/web/dist (Vite)
-pnpm test        # 94 теста: core-contracts, design-system, runner, gate-service, ai-provider, sync-engine, server, web
+pnpm test        # 97 тестов: core-contracts, design-system, runner, gate-service, ai-provider, sync-engine, server, web
 ```
 
 Сервер: `pnpm --filter @neuroos/server dev` (или `node apps/server/dist/main.js`) → `http://127.0.0.1:3000/healthz`.

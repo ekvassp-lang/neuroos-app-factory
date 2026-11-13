@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { wasFromCache } from './api.js';
+import { getApiToken, wasFromCache } from './api.js';
 
 export interface ApiResult<T> {
   data: T | null;
@@ -68,7 +68,9 @@ export function useLiveEvents(): { connected: boolean; lastEvent: LiveEvent | nu
 
     const connect = () => {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      socket = new WebSocket(`${protocol}//${window.location.host}/ws`);
+      const token = getApiToken();
+      const query = token ? `?token=${encodeURIComponent(token)}` : '';
+      socket = new WebSocket(`${protocol}//${window.location.host}/ws${query}`);
       socket.onopen = () => {
         if (!closed) setConnected(true);
       };

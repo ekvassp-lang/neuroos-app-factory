@@ -20,6 +20,29 @@ export class ApiError extends Error {
 }
 
 const CACHE_PREFIX = 'nf-cache:';
+const TOKEN_KEY = 'nf-token';
+
+export function getApiToken(): string {
+  try {
+    return localStorage.getItem(TOKEN_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+export function setApiToken(token: string): void {
+  try {
+    if (token.trim()) localStorage.setItem(TOKEN_KEY, token.trim());
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    return;
+  }
+}
+
+function authHeaders(): Record<string, string> {
+  const token = getApiToken();
+  return token ? { authorization: `Bearer ${token}` } : {};
+}
 
 let fromCache = false;
 
@@ -49,7 +72,10 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
   try {
     res = await fetch(url, {
       method,
-      headers: body !== undefined ? { 'content-type': 'application/json' } : undefined,
+      headers: {
+        ...authHeaders(),
+        ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
+      },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch (error) {

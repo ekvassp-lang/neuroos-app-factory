@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useApi } from '../hooks.js';
-import { api, ApiError } from '../api.js';
+import { api, ApiError, getApiToken, setApiToken } from '../api.js';
 import type { FactorySettings } from '@neuroos/core-contracts';
 import { Card, ErrorBox, Field, Loader } from '../components/ui.js';
 
@@ -9,6 +9,9 @@ export function Settings() {
   const [form, setForm] = useState<FactorySettings | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [tokenInput, setTokenInput] = useState('');
+  const [tokenSaved, setTokenSaved] = useState(false);
+  const [activeToken, setActiveToken] = useState(getApiToken());
 
   useEffect(() => {
     if (data) setForm(data);
@@ -72,6 +75,51 @@ export function Settings() {
               {saveError}
             </p>
           )}
+        </form>
+      </Card>
+      <Card title="Доступ (токен API)">
+        <form
+          className="nf-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setApiToken(tokenInput);
+            setActiveToken(getApiToken());
+            setTokenInput('');
+            setTokenSaved(true);
+          }}
+        >
+          <Field label="Токен (Bearer; роль задаётся на сервере в NF_AUTH_TOKENS)">
+            <input
+              type="password"
+              value={tokenInput}
+              data-testid="token-input"
+              placeholder={activeToken ? 'токен задан — введите новый для замены' : 'токен не задан'}
+              onChange={(e) => setTokenInput(e.target.value)}
+            />
+          </Field>
+          <button type="submit" className="nf-button" data-testid="token-save">
+            Сохранить токен
+          </button>
+          {activeToken && (
+            <button
+              type="button"
+              className="nf-button"
+              data-testid="token-clear"
+              onClick={() => {
+                setApiToken('');
+                setActiveToken('');
+                setTokenSaved(true);
+              }}
+            >
+              Удалить токен
+            </button>
+          )}
+          {tokenSaved && <p className="nf-ok-text">Токен обновлён</p>}
+          <p className="nf-muted-text">
+            Токен хранится в localStorage этого браузера и отправляется как
+            Authorization: Bearer для API и WebSocket. Без токена, при включённой
+            аутентификации на сервере, API отвечает 401.
+          </p>
         </form>
       </Card>
     </div>

@@ -58,7 +58,7 @@ scripts/            security-scan.mjs (SAST + сканер секретов)
 | GET/POST /api/v1/releases | реестр релизов; POST — правила каналов ↔ G5/G6 |
 | GET /api/v1/updates/latest | UPDATE MANAGER v1 (семвер-сравнение) |
 | GET/PUT /api/v1/settings | настройки фабрики |
-| WS /ws | живые события store |
+| WS /ws | живые события store; при включённой аутентификации — токен (`?token=` или Bearer на upgrade), иначе 401 |
 
 Аутентификация (v0.7.0): все `/api/v1/*` требуют `Authorization: Bearer <token>`;
 токены задаются в `NF_AUTH_TOKENS` (`token:role`). Роли: owner — всё;

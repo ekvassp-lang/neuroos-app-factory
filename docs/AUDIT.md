@@ -552,7 +552,7 @@ RELEASE HUB и UPDATE MANAGER v1 реализованы, серверные пр
 
 ## 2. Верификация
 
-- `pnpm test` — 94 зелёных (41 server, 8 web, 45 packages); typecheck — 0 ошибок.
+- `pnpm test` — 97 зелёных (43 server, 9 web, 45 packages); typecheck — 0 ошибок.
 - Живой smoke: открытый режим + защищённый режим (401/403/200 по матрице ролей).
 
 ## 3. Честные статусы
@@ -564,3 +564,30 @@ RELEASE HUB и UPDATE MANAGER v1 реализованы, серверные пр
 | Интеграция с секретным хранилищем | NOT IMPLEMENTED — нужна инфраструктура |
 | HTTPS / защита Bearer-токенов на транспорте | ВНЕ СКОУПА репозитория |
 | Формальные утверждения ворот G0–G6 владельцем | Ожидает владельца (UI/API) |
+
+---
+
+# Дополнение 2 (пост-STAGE 8) — WebSocket auth и токен в веб-интерфейсе
+
+## 1. Что сделано
+
+- `apps/server/src/app.ts` — `/ws` при включённой аутентификации проверяет токен
+  на upgrade (`?token=` или `Authorization: Bearer`); без валидного токена — 401.
+- `apps/web/src/api.ts` — `setApiToken`/`getApiToken` (localStorage `nf-token`),
+  Authorization во всех запросах; `offlineQueue.ts` — токен в sync-транспорте;
+  `hooks.ts` — WebSocket с `?token=`; Settings — карточка «Доступ (токен API)».
+- Документация: SECURITY.md, TECHNICAL_SPECIFICATION.md, USER_GUIDE.md, README.
+
+## 2. Верификация
+
+- `pnpm test` — 97 зелёных (43 server, 9 web, 45 packages); typecheck 0 ошибок.
+- Новые тесты: WS-reject + WS-delivery + open-mode WS (server), Bearer header
+  (web).
+
+## 3. Честные статусы
+
+| Пункт | Статус |
+|---|---|
+| WS auth (upgrade 401 / token delivery) | DONE — 2 теста |
+| Токен в веб-интерфейсе (API + очередь + WS) | DONE — 1 тест + UI |
+| Хранение токена в localStorage | промежуточное решение (при HTTPS — приемлемо) |

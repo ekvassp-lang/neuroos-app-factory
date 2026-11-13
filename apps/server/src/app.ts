@@ -39,6 +39,19 @@ const PLATFORMS = ['web', 'pwa', 'windows', 'macos', 'linux', 'android', 'ios'] 
 
 export type AuthRole = 'owner' | 'engineer' | 'viewer';
 
+function wsTokenFrom(rawUrl: string, authorization: string): string {
+  const qIndex = rawUrl.indexOf('?');
+  if (qIndex !== -1) {
+    try {
+      const token = new URLSearchParams(rawUrl.slice(qIndex + 1)).get('token');
+      if (token) return token.trim();
+    } catch {
+      return '';
+    }
+  }
+  return authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
+}
+
 export function parseAuthTokens(raw: string | undefined): Record<string, AuthRole> {
   if (!raw) return {};
   const tokens: Record<string, AuthRole> = {};
@@ -109,8 +122,17 @@ export async function createApp(options: CreateAppOptions = {}) {
 
   app.addHook('onRequest', async (req, reply) => {
     if (!authEnabled) return;
-    const url = (req.url ?? '').split('?')[0];
-    if (url === '/healthz' || !url.startsWith('/api/v1/')) return;
+    const rawUrl = req.url ?? '';
+    const url = rawUrl.split('?')[0];
+    if (url === '/healthz') return;
+    if (!url.startsWith('/api/v1/')) {
+      if (url !== '/ws') return;
+      const wsToken = wsTokenFrom(rawUrl, req.headers.authorization ?? '');
+      if (!wsToken || !authTokens[wsToken]) {
+        return reply.code(401).send({ error: 'authentication required: /ws?token=<token> or Authorization: Bearer' });
+      }
+      return;
+    }
     const header = req.headers.authorization ?? '';
     const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
     const role = token ? authTokens[token] : undefined;

@@ -126,3 +126,60 @@ describe('STAGE 8+: role matrix', () => {
     await app.close();
   });
 });
+
+describe('STAGE 8+: WebSocket auth', () => {
+  const tokens = { wsOwnerTok: 'owner' as const };
+
+  it('rejects /ws upgrade without token and accepts with valid token (event delivered)', async () => {
+    const { app } = await makeApp(tokens);
+    await app.listen({ port: 0, host: '127.0.0.1' });
+    const address = app.server.address();
+    if (!address || typeof address === 'string') throw new Error('no port');
+    const base = `ws://127.0.0.1:${address.port}`;
+
+    let closedCode: number | null = null;
+    await new Promise<void>((resolve) => {
+      const socket = new WebSocket(`${base}/ws`);
+      socket.onerror = () => {
+        resolve();
+      };
+      socket.onclose = (event) => {
+        closedCode = event.code;
+        resolve();
+      };
+    });
+    expect(closedCode === null || closedCode === 1006 || closedCode === 1008).toBe(true);
+
+    const received: string[] = [];
+    const socket = new WebSocket(`${base}/ws?token=wsOwnerTok`);
+    await new Promise<void>((resolve, reject) => {
+      socket.onopen = () => resolve();
+      socket.onerror = () => reject(new Error('ws with token failed to open'));
+    });
+    socket.onmessage = (message) => received.push(String(message.data));
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/projects',
+      headers: { authorization: 'Bearer wsOwnerTok' },
+      payload: { name: 'WS Check', slug: 'ws-check' },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    socket.close();
+    expect(received.some((raw) => raw.includes('project.created'))).toBe(true);
+    await app.close();
+  });
+
+  it('allows /ws without token in open mode', async () => {
+    const { app } = await makeApp({});
+    await app.listen({ port: 0, host: '127.0.0.1' });
+    const address = app.server.address();
+    if (!address || typeof address === 'string') throw new Error('no port');
+    const socket = new WebSocket(`ws://127.0.0.1:${address.port}/ws`);
+    await new Promise<void>((resolve, reject) => {
+      socket.onopen = () => resolve();
+      socket.onerror = () => reject(new Error('open mode ws failed'));
+    });
+    socket.close();
+    await app.close();
+  });
+});

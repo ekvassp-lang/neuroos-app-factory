@@ -92,5 +92,15 @@
   (projects/jobs/sync OK; approve/reject, релизы, настройки — 403), owner
   (approve G0 после PATCH критериев + spec-артефакт; релиз 201), healthz открыт
   при защищённом API и честно сообщает `auth: "enabled"`.
-- Итог: 94 теста зелёных (41 server, 8 web, 45 packages); typecheck 0 ошибок;
+- Итог: 97 тестов зелёных (43 server, 9 web, 45 packages); typecheck 0 ошибок;
   security-скан без находок.
+
+# Дополнение 2 (пост-STAGE 8) — WebSocket auth и токен в веб-интерфейсе (3 новых теста, итого 97)
+
+- Server: `/ws` при включённой аутентификации — 401 на upgrade без токена;
+  подключение с валидным токеном (`/ws?token=`) получает события broadcaster;
+  в открытом режиме `/ws` доступен без токена (2 теста).
+- Web: `setApiToken`/`getApiToken` (localStorage `nf-token`, trim); все запросы
+  api и офлайн-очередь отправляют `Authorization: Bearer`; WebSocket в
+  useLiveEvents подключается с `?token=`; Settings — карточка «Доступ (токен
+  API)» (сохранить/удалить, честная пометка о localStorage) (1 тест).

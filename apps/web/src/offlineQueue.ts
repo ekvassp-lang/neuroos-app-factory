@@ -1,4 +1,5 @@
 import { LocalStorageKV, OperationQueue, SyncClient, type SyncTransportResult } from '@neuroos/sync-engine';
+import { getApiToken } from './api.js';
 
 export class QueuedOfflineError extends Error {
   constructor(
@@ -23,7 +24,10 @@ const transport = async (operation: {
 }): Promise<SyncTransportResult> => {
   const res = await fetch('/api/v1/sync', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: {
+      'content-type': 'application/json',
+      ...(getApiToken() ? { authorization: `Bearer ${getApiToken()}` } : {}),
+    },
     body: JSON.stringify({
       operations: [
         { id: operation.id, kind: operation.kind, payload: operation.payload, baseRevision: operation.baseRevision },
