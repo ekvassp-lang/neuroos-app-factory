@@ -65,6 +65,7 @@ Android (APK/AAB), iOS (IPA/проект подписанной сборки). �
 | [docs/BUILD.md](docs/BUILD.md) | сборка пакетов и десктоп-сборки |
 | [docs/SECURITY.md](docs/SECURITY.md) | безопасность: ключи, RUNNER, сканирование |
 | [docs/TEST_REPORT.md](docs/TEST_REPORT.md) | тест-отчёт (97 тестов) |
+| [docs/TRACEABILITY.md](docs/TRACEABILITY.md) | матрица трассировки RF-1…RF-19 / RN-1…RN-7 → реализация → тесты → статус |
 | [docs/USER_GUIDE.md](docs/USER_GUIDE.md) | руководство пользователя: интерфейс, сценарий, офлайн, роли |
 | [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md) | release notes |
 

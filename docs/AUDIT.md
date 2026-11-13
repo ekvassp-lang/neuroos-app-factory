@@ -602,3 +602,33 @@ RELEASE HUB и UPDATE MANAGER v1 реализованы, серверные пр
   недействительной, это честно признаётся дефектом инструмента).
 - Самопроверка на фикстурах: длинный секрет ловится (exit 1), короткие значения
   и имена ключей — нет; скан репозитория — 0 findings.
+
+---
+
+# Дополнение 3 (пост-STAGE 8) — Матрица трассировки и усиление сканера
+
+## 1. Что сделано
+
+- `docs/TRACEABILITY.md` — новый: каждое требование RF-1…RF-19 и RN-1…RN-7 из
+  REQUIREMENTS.md сопоставлено с реализацией (файлы/модули), тестами/артефактами
+  и честным статусом. Сводка: DONE 17, PARTIAL 7, BLOCKED (ключи/сертификаты),
+  NOT IMPLEMENTED (Android/iOS, IndexedDB, секрет-хранилище, доставка обновлений),
+  NOT TESTED (PG, интерактивные установщики).
+- `scripts/security-scan.mjs` — новые правила без новых зависимостей:
+  секреты — Google API key (AIza…), npm-токен (npm_…); SAST —
+  `rejectUnauthorized: false`, динамический `require(переменная)`.
+
+## 2. Верификация
+
+- Фикстуры: rejectUnauthorized:false и динамический require ловятся;
+  `require('node:fs')` и `rejectUnauthorized: true` — нет; AIza-ключ и npm-токен
+  ловятся. Скан репозитория — 0 findings.
+- `pnpm test` — 97 зелёных; typecheck 0 ошибок.
+
+## 3. Честные статусы
+
+| Пункт | Статус |
+|---|---|
+| Матрица трассировки RF/RN | DONE |
+| Сканер: Google/npm секреты, TLS-off, dynamic require | DONE — проверено на фикстурах |
+| Промышленный SAST/DAST (Semgrep/CodeQL) | NOT IMPLEMENTED — остаётся промежуточным решением |

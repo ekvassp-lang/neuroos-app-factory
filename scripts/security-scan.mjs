@@ -13,6 +13,8 @@ const SECRET_PATTERNS = [
   { name: 'github-fine-grained-token', re: /\bgithub_pat_[A-Za-z0-9_]{20,}\b/ },
   { name: 'aws-access-key', re: /\bAKIA[0-9A-Z]{16}\b/ },
   { name: 'slack-token', re: /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/ },
+  { name: 'google-api-key', re: /\bAIza[0-9A-Za-z_\-]{35}\b/ },
+  { name: 'npm-token', re: /\bnpm_[A-Za-z0-9]{36}\b/ },
   { name: 'mistral-api-key', re: /\b[A-Za-z0-9]{32}\b/, context: /key|token|secret/i },
   { name: 'generic-bearer-secret', re: /\b(Bearer|bearer)\s+[A-Za-z0-9_\-.=]{25,}\b/ },
   { name: 'env-assignment-secret', re: /\b(API_KEY|SECRET|TOKEN|PASSWORD|PRIVATE_KEY)[A-Z_]*\s*=\s*['"][^'"]{16,}['"]/ },
@@ -25,6 +27,8 @@ const SAST_PATTERNS = [
   { name: 'innerHTML-assign', re: /\.innerHTML\s*=/ },
   { name: 'exec-interpolation', re: /exec(?:Sync)?\s*\(\s*[`'"][^'"`]*\$\{/ },
   { name: 'shell-true', re: /shell\s*:\s*true/ },
+  { name: 'tls-verification-disabled', re: /rejectUnauthorized\s*:\s*false/ },
+  { name: 'dynamic-require', re: /\brequire\s*\(\s*[^'")]/ },
 ];
 
 async function* walk(dir) {
