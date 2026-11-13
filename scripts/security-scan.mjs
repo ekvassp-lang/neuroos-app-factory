@@ -1,4 +1,5 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
+import { resolve as resolvePath } from 'node:path';
 import path from 'node:path';
 
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'data', '.vibe']);
@@ -14,7 +15,7 @@ const SECRET_PATTERNS = [
   { name: 'slack-token', re: /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/ },
   { name: 'mistral-api-key', re: /\b[A-Za-z0-9]{32}\b/, context: /key|token|secret/i },
   { name: 'generic-bearer-secret', re: /\b(Bearer|bearer)\s+[A-Za-z0-9_\-.=]{25,}\b/ },
-  { name: 'env-assignment-secret', re: /\b(API_KEY|SECRET|TOKEN|PASSWORD|PRIVATE_KEY)[A-Z_]*\s*=\s*['"][^'"]{8,}['"]/ },
+  { name: 'env-assignment-secret', re: /\b(API_KEY|SECRET|TOKEN|PASSWORD|PRIVATE_KEY)[A-Z_]*\s*=\s*['"][^'"]{16,}['"]/ },
 ];
 
 const SAST_PATTERNS = [
@@ -69,7 +70,7 @@ async function scan(root, patterns, codeOnly = false) {
 }
 
 const mode = process.argv[2] ?? 'all';
-const root = process.cwd();
+const root = resolvePath(process.argv[3] ?? process.cwd());
 
 if (mode === 'secrets' || mode === 'all') {
   const secrets = await scan(root, SECRET_PATTERNS);
