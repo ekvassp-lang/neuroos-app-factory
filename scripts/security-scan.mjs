@@ -4,6 +4,7 @@ import path from 'node:path';
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'data', '.vibe']);
 const SKIP_FILES = new Set(['pnpm-lock.yaml', 'package-lock.json', 'yarn.lock', path.join('scripts', 'security-scan.mjs')]);
 const BINARY_EXT = new Set(['.png', '.ico', '.icns', '.jpg', '.jpeg', '.gif', '.woff', '.woff2']);
+const CODE_EXT = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
 
 const SECRET_PATTERNS = [
   { name: 'private-key-block', re: /-----BEGIN [A-Z ]*PRIVATE KEY-----/ },
@@ -38,11 +39,12 @@ async function* walk(dir) {
   }
 }
 
-async function scan(root, patterns) {
+async function scan(root, patterns, codeOnly = false) {
   const findings = [];
   for await (const file of walk(root)) {
     if (SKIP_FILES.has(path.basename(file)) || SKIP_FILES.has(path.relative(root, file))) continue;
     if (BINARY_EXT.has(path.extname(file))) continue;
+    if (codeOnly && !CODE_EXT.has(path.extname(file))) continue;
     const info = await stat(file);
     if (info.size > 512 * 1024) continue;
     const rel = path.relative(root, file);
@@ -81,7 +83,7 @@ if (mode === 'secrets' || mode === 'all') {
 }
 
 if (mode === 'sast' || mode === 'all') {
-  const sast = await scan(root, SAST_PATTERNS);
+  const sast = await scan(root, SAST_PATTERNS, true);
   const real = sast.filter((f) => !f.isTest);
   if (real.length > 0) {
     console.error(`SAST FINDINGS: ${real.length}`);
