@@ -81,3 +81,16 @@
 - Дубликат version+channel → 409; невалидная версия/канал → 400.
 - Update check: latest 0.10.0 (числовое семвер-сравнение), updateAvailable true/false; пустой канал → 404.
 - Живой smoke полного сценария на собранном сервере — OK (включая персистентность).
+
+---
+
+# Дополнение (пост-STAGE 8) — Аутентификация и роли (7 новых тестов, итого 94)
+
+- `apps/server/src/auth.test.ts` (7): разбор `NF_AUTH_TOKENS` (некорректные пары
+  игнорируются), открытый режим (`auth: "disabled"`), 401 без/с неизвестным
+  токеном, viewer read-only (GET 200, мутации 403), матрица engineer
+  (projects/jobs/sync OK; approve/reject, релизы, настройки — 403), owner
+  (approve G0 после PATCH критериев + spec-артефакт; релиз 201), healthz открыт
+  при защищённом API и честно сообщает `auth: "enabled"`.
+- Итог: 94 теста зелёных (41 server, 8 web, 45 packages); typecheck 0 ошибок;
+  security-скан без находок.

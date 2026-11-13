@@ -1,6 +1,6 @@
 # TECHNICAL SPECIFICATION — NeuroOS App Factory
 
-Версия: 0.1.0 · API v0.6.0 · Актуализировано по факту реализации (STAGE 8)
+Версия: 0.1.0 · API v0.7.0 · Актуализировано по факту реализации (STAGE 8 + auth/roles)
 
 ## 1. Общие сведения
 
@@ -27,7 +27,7 @@
 
 ```
 apps/
-  server/   Fastify API v0.6.0 + WebSocket + worker + persistence
+  server/   Fastify API v0.7.0 + WebSocket + worker + persistence + auth
   web/      React SPA + PWA (manifest, service worker, offline-очередь)
 packages/
   core-contracts/   типы домена (14 статусов, ворота G0–G6, релизы)
@@ -40,11 +40,11 @@ src-tauri/          конфигурация Tauri 2 (окна, bundle, capabili
 scripts/            security-scan.mjs (SAST + сканер секретов)
 ```
 
-## 4. API v0.6.0 (фактические endpoints)
+## 4. API v0.7.0 (фактические endpoints)
 
 | Метод и путь | Назначение |
 |---|---|
-| GET /healthz | версия API, статус |
+| GET /healthz | версия API, статус, режим аутентификации (auth: enabled/disabled) |
 | GET /api/v1/overview | сводка фабрики |
 | GET/POST /api/v1/projects | список/создание проектов |
 | GET/PATCH /api/v1/projects/:slug | карточка/изменение (RELEASED → 409 без G6) |
@@ -59,6 +59,12 @@ scripts/            security-scan.mjs (SAST + сканер секретов)
 | GET /api/v1/updates/latest | UPDATE MANAGER v1 (семвер-сравнение) |
 | GET/PUT /api/v1/settings | настройки фабрики |
 | WS /ws | живые события store |
+
+Аутентификация (v0.7.0): все `/api/v1/*` требуют `Authorization: Bearer <token>`;
+токены задаются в `NF_AUTH_TOKENS` (`token:role`). Роли: owner — всё;
+engineer — рабочие операции (projects/jobs/sync) без ворот approve/reject,
+релизов и настроек; viewer — только GET. Без токенов — открытый режим.
+`/healthz` и пути вне `/api/v1/` открыты всегда.
 
 ## 5. Модель данных (фактическая, in-memory + снапшот)
 
@@ -91,11 +97,14 @@ G0 (спецификация) → G1 (архитектура) → G2 (сборк
 
 Ключи AI — только как key_ref; smoke-test до включения провайдера; RUNNER —
 whitelist команд, маскировка секретов в логах, таймауты; артефакты — SHA-256
-верификация; SAST + сканер секретов в CI. Подробно — docs/SECURITY.md.
+верификация; SAST + сканер секретов в CI; аутентификация и роли (owner/engineer/
+viewer) через Bearer-токены из `NF_AUTH_TOKENS`. Подробно — docs/SECURITY.md.
 
 ## 10. Известные ограничения (честно)
 
 - PostgreSQL/pg-boss: NOT TESTED (нет PG в среде разработки).
+- Хранение auth-токенов в переменной среды — промежуточное решение; интеграция
+  с секретным хранилищем не реализована.
 - AI-провайдеры: BLOCKED без ключей владельца; задания честно падают.
 - Android/iOS: NOT IMPLEMENTED (нужны тулчейны).
 - Подпись артефактов и автообновление с загрузкой: NOT IMPLEMENTED (нужны сертификаты).

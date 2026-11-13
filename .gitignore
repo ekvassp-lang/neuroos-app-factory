@@ -6,3 +6,5 @@ dist/
 releases/*
 !releases/README.md
 coverage/
+
+apps/server/data/

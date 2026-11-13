@@ -37,12 +37,30 @@ import {
 
 const PLATFORMS = ['web', 'pwa', 'windows', 'macos', 'linux', 'android', 'ios'] as const;
 
+export type AuthRole = 'owner' | 'engineer' | 'viewer';
+
+export function parseAuthTokens(raw: string | undefined): Record<string, AuthRole> {
+  if (!raw) return {};
+  const tokens: Record<string, AuthRole> = {};
+  for (const pair of raw.split(',')) {
+    const idx = pair.lastIndexOf(':');
+    if (idx <= 0) continue;
+    const token = pair.slice(0, idx).trim();
+    const role = pair.slice(idx + 1).trim() as AuthRole;
+    if (token && ['owner', 'engineer', 'viewer'].includes(role)) {
+      tokens[token] = role;
+    }
+  }
+  return tokens;
+}
+
 export interface CreateAppOptions {
   state?: FactoryState;
   broadcaster?: Broadcaster;
   dataDir?: string;
   persistPath?: string;
   aiComplete?: WorkerContext['aiComplete'];
+  authTokens?: Record<string, AuthRole>;
 }
 
 export interface SyncOperationInput {
@@ -83,13 +101,42 @@ export async function createApp(options: CreateAppOptions = {}) {
 
   const appliedSyncResults = new Map<string, { outcome: 'applied'; projectId: string }>();
 
+  const authTokens = options.authTokens ?? parseAuthTokens(process.env.NF_AUTH_TOKENS);
+  const authEnabled = Object.keys(authTokens).length > 0;
+
   const app = Fastify({ logger: false });
   await app.register(websocket);
+
+  app.addHook('onRequest', async (req, reply) => {
+    if (!authEnabled) return;
+    const url = (req.url ?? '').split('?')[0];
+    if (url === '/healthz' || !url.startsWith('/api/v1/')) return;
+    const header = req.headers.authorization ?? '';
+    const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+    const role = token ? authTokens[token] : undefined;
+    if (!role) {
+      return reply.code(401).send({ error: 'authentication required: Bearer token with role owner|engineer|viewer' });
+    }
+    if (role === 'owner') return;
+    const method = req.method.toUpperCase();
+    if (method === 'GET') return;
+    if (role === 'viewer') {
+      return reply.code(403).send({ error: 'viewer role is read-only' });
+    }
+    if (/\/gates\/G\d+\/(approve|reject)$/.test(url)) {
+      return reply.code(403).send({ error: 'gate decisions require owner role' });
+    }
+    const isWorkOperation = /\/api\/v1\/(projects|jobs|sync)\b/.test(url);
+    if (!isWorkOperation) {
+      return reply.code(403).send({ error: 'this operation requires owner role' });
+    }
+  });
 
   app.get('/healthz', async () => ({
     status: 'ok',
     service: 'neuroos-app-factory-server',
-    version: '0.6.0',
+    version: '0.7.0',
+    auth: authEnabled ? 'enabled' : 'disabled',
   }));
 
   app.get('/api/v1/overview', async () => {
