@@ -1,0 +1,17 @@
+[package]
+name = "neuroos-app-factory"
+version = "0.1.0"
+description = "NeuroOS App Factory — universal software production system"
+edition = "2021"
+
+[lib]
+name = "neuroos_app_factory_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

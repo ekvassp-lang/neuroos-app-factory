@@ -81,7 +81,7 @@ export async function createApp(options: CreateAppOptions = {}) {
   app.get('/healthz', async () => ({
     status: 'ok',
     service: 'neuroos-app-factory-server',
-    version: '0.4.0',
+    version: '0.5.0',
   }));
 
   app.get('/api/v1/overview', async () => {

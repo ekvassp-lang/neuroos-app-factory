@@ -1,3 +1,4 @@
+import { enqueueOffline, isNetworkError, QueuedOfflineError } from './offlineQueue.js';
 import type {
   Artifact,
   FactorySettings,
@@ -109,14 +110,33 @@ export interface ListResponse<T> {
   items: T[];
 }
 
+function withOfflineFallback<T>(op: () => Promise<T>, kind: string, payload: unknown): Promise<T> {
+  return op().catch((error: unknown) => {
+    if (isNetworkError(error)) {
+      return enqueueOffline(kind, payload).then(
+        (opId) => Promise.reject(new QueuedOfflineError(opId, kind)),
+      );
+    }
+    return Promise.reject(error);
+  });
+}
+
 export const api = {
   overview: () => request<Overview>('GET', '/api/v1/overview'),
   projects: () => request<ListResponse<Project>>('GET', '/api/v1/projects'),
   createProject: (name: string, slug: string) =>
-    request<Project>('POST', '/api/v1/projects', { name, slug }),
+    withOfflineFallback(
+      () => request<Project>('POST', '/api/v1/projects', { name, slug }),
+      'create_project',
+      { name, slug },
+    ),
   project: (slug: string) => request<ProjectDetail>('GET', `/api/v1/projects/${slug}`),
-  patchProject: (slug: string, patch: Partial<Project>) =>
-    request<Project>('PATCH', `/api/v1/projects/${slug}`, patch),
+  patchProject: (slug: string, patch: Partial<Project>, baseRevision?: number) =>
+    withOfflineFallback(
+      () => request<Project>('PATCH', `/api/v1/projects/${slug}`, patch),
+      'patch_project',
+      { slug, ...patch, baseRevision },
+    ),
   events: () => request<ListResponse<LifecycleEvent>>('GET', '/api/v1/events'),
   jobs: () => request<ListResponse<Job>>('GET', '/api/v1/jobs'),
   createJob: (projectId: string, kind: Job['kind']) =>

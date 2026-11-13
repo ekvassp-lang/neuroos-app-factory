@@ -25,6 +25,35 @@ export class MemoryKV implements KVAdapter {
   }
 }
 
+export class LocalStorageKV implements KVAdapter {
+  constructor(private prefix = 'nf-kv:') {}
+
+  private full(key: string): string {
+    return this.prefix + key;
+  }
+
+  async get(key: string): Promise<string | null> {
+    return localStorage.getItem(this.full(key));
+  }
+
+  async set(key: string, value: string): Promise<void> {
+    localStorage.setItem(this.full(key), value);
+  }
+
+  async delete(key: string): Promise<void> {
+    localStorage.removeItem(this.full(key));
+  }
+
+  async keys(): Promise<string[]> {
+    const result: string[] = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(this.prefix)) result.push(key.slice(this.prefix.length));
+    }
+    return result;
+  }
+}
+
 export type QueuedOperationStatus = 'pending' | 'synced' | 'conflict' | 'failed';
 
 export interface QueuedOperation {

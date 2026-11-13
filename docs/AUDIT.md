@@ -291,3 +291,65 @@ WebSocket. До полного DONE: исполнение задач (STAGE 3), 
 фактически), конфликты разрешаются LWW + вектором версий, состояние переживает рестарт.
 До полного DONE: IndexedDB-адаптер и перевод мутаций UI через очередь (STAGE 5, PWA),
 PostgreSQL-персистентность (нужен PG).
+
+---
+
+# STAGE 5 — Multiplatform (аудит)
+
+## 1. Что сделано
+
+**Оболочка Tauri 2 (src-tauri/):**
+- `tauri.conf.json` — схема v2: productName «NeuroOS App Factory», identifier `com.neuroos.appfactory`, frontendDist `../apps/web/dist`, devUrl :5173, окно 1280×800 (мин. 900×600), bundle targets all, иконки.
+- `Cargo.toml` (tauri 2, tauri-build 2, crate-type staticlib/cdylib/rlib), `build.rs`, `src/lib.rs` (`tauri::Builder::default().run(generate_context!())`, mobile_entry_point), `src/main.rs`, `capabilities/default.json` (core:default).
+- Иконки: 4 PNG сгенерированы (32×32, 128×128, 128×128@2x, 512) — дизайн: фон #111827, круг #18D6D1 (селадон), рамка #033438. icns/ico генерируются в CI (`tauri icon`).
+
+**PWA (apps/web):**
+- `public/manifest.webmanifest` — name, icons 32/128/256/512, display standalone, theme #111827, lang ru.
+- `public/sw.js` — кэш `nf-cache-v1`: network-first для `/api/` с fallback на кэш, cache-first для статики; APP_SHELL.
+- `src/main.tsx` — регистрация SW только в production (`import.meta.env.PROD`), с guard.
+- `index.html` — theme-color, manifest link, favicon.
+- `src/vite-env.d.ts` — типы vite/client для `import.meta.env`.
+
+**Офлайн-очередь в UI:**
+- `packages/sync-engine`: новый `LocalStorageKV` (prefix 'nf-kv:') — браузерный KV-адаптер; 2 jsdom-теста (изоляция префиксов, переживание пересоздания адаптера).
+- `apps/web/src/offlineQueue.ts` — очередь мутаций на LocalStorageKV('nf-queue:'), transport → POST /api/v1/sync, `QueuedOfflineError`, subscribe/pendingCount/requeueFailed.
+- `apps/web/src/api.ts` — `withOfflineFallback`: createProject и patchProject при сетевом сбое (TypeError) ставятся в очередь; API-ошибки (ApiError) в очередь НЕ попадают (честное различение).
+- `apps/web/src/components/Layout.tsx` — чип «в очереди: N» (data-testid="pending-ops"), авто-flush при переподключении WS и событии window 'online'.
+- 3 jsdom-теста offlineQueue: очередь при сетевом сбое + flush без потери данных; API-ошибки не ставятся в очередь; failed-операции возвращаются в очередь.
+
+**CI-матрица десктоп-сборок (.github/workflows/desktop.yml):**
+- windows-latest → nsis, msi; macos-latest → app, dmg; ubuntu-latest → appimage, deb, rpm.
+- ubuntu: system deps libwebkit2gtk-4.1-dev и др.; rust stable; генерация иконок `tauri icon`.
+- tauri-apps/tauri-action@v0: черновой релиз по тегу v__VERSION__ — публикация вручную после G6.
+- Триггеры: workflow_dispatch + push тегов 'v*'. Автозапуск отключён (долгая сборка на 3 ОС — по решению владельца).
+
+**Каталог релизов:** `releases/README.md` — структура, каналы stable/beta/alpha/dev, связь с G5/G6, честный статус.
+
+## 2. Верификация
+
+- `pnpm typecheck` — 0 ошибок (все 8 пакетов/приложений).
+- `pnpm build` — OK, включая vite build (189.71 kB gzip 61.33 kB); PWA-файлы (sw.js, manifest.webmanifest, icons/) присутствуют в dist/.
+- `pnpm test` — **77 тестов зелёные** (sync-engine 12, web 8, server 24, gate-service 12, ai-provider 12, runner 7, core-contracts 1, design-system 1).
+- JSON-конфиги (tauri.conf.json, manifest.webmanifest) — валидны.
+
+## 3. Честные статусы
+
+| Компонент | Статус |
+|---|---|
+| Tauri 2 конфигурация + Rust-источники | DONE — конфиги валидны, структура соответствует схеме v2 |
+| Фактические десктоп-сборки (nsis/msi/dmg/appimage/deb/rpm) | NOT TESTED — требуют запуска CI-матрицы (webkit2gtk отсутствует в Linux-песочнице, Windows/macOS недоступны); запуск — по решению владельца |
+| PWA (манифест + service worker + регистрация) | DONE — файлы в dist/, сборка проверена |
+| LocalStorageKV-адаптер | DONE — 2 jsdom-теста |
+| Офлайн-очередь мутаций в UI | DONE — 3 jsdom-теста, честное различение сетевых сбоев и API-ошибок |
+| Авто-flush при переподключении | DONE — WS reconnect + window 'online' |
+| CI-матрица десктоп-сборок | DONE (конфигурация) / NOT TESTED (исполнение) — workflow закоммичен, запуск только вручную |
+| Каталог /releases/ | DONE — README со структурой и каналами; артефакты появятся после первой CI-сборки |
+| Android/iOS | NOT IMPLEMENTED — нужны мобильные тулчейны (STAGE 6) |
+| Подпись артефактов | NOT IMPLEMENTED — STAGE 7 (нужны сертификаты владельца) |
+
+## 4. Подтверждённый статус этапа
+
+**STAGE 5 — DONE (по локальной верификации) / PARTIAL (в целом).**
+Кроссплатформенная оболочка, PWA и офлайн-очередь в UI реализованы и проверены тестами и сборкой.
+До полного DONE: фактический прогон CI-матрицы на трёх ОС (требует решения владельца — многоминутная сборка),
+Android/iOS (STAGE 6).
