@@ -8,7 +8,7 @@ IDEA → SPECIFICATION → ARCHITECTURE → DEVELOPMENT → TESTING → AUDIT �
 ```
 
 - **Версия:** 0.1.0
-- **Статус:** STAGE 7 — Build & Release (RELEASE HUB с каналами и воротами G5/G6, UPDATE MANAGER v1, 87 тестов; детали в [docs/AUDIT.md](docs/AUDIT.md))
+- **Статус:** STAGE 8 — Documentation завершён. Все 8 этапов STAGE 0–8 выполнены; релиз [v0.1.0](https://github.com/ekvassp-lang/neuroos-app-factory/releases/tag/v0.1.0) опубликован. Сводка честных статусов — [docs/AUDIT.md](docs/AUDIT.md)
 - **Исполнительская среда:** Vibe Code (async agent); нормативный стандарт производства —
   `STANDARD — UNIVERSAL MULTIPLATFORM APP BUILDER` («003 промпт»)
 
@@ -59,7 +59,13 @@ Android (APK/AAB), iOS (IPA/проект подписанной сборки). �
 | [docs/SECURITY_MODEL.md](docs/SECURITY_MODEL.md) | модель безопасности |
 | [docs/QUALITY_GATES.md](docs/QUALITY_GATES.md) | контрольные точки G0–G6 |
 | [docs/IMPLEMENTATION_ROADMAP.md](docs/IMPLEMENTATION_ROADMAP.md) | план реализации STAGE 1–8 |
-| [docs/AUDIT.md](docs/AUDIT.md) | аудит STAGE 0: что проверялось, что подтверждено |
+| [docs/AUDIT.md](docs/AUDIT.md) | аудит всех этапов: что проверялось, что подтверждено |
+| [docs/TECHNICAL_SPECIFICATION.md](docs/TECHNICAL_SPECIFICATION.md) | техническая спецификация (по факту реализации) |
+| [docs/INSTALLATION.md](docs/INSTALLATION.md) | установка/удаление/восстановление |
+| [docs/BUILD.md](docs/BUILD.md) | сборка пакетов и десктоп-сборки |
+| [docs/SECURITY.md](docs/SECURITY.md) | безопасность: ключи, RUNNER, сканирование |
+| [docs/TEST_REPORT.md](docs/TEST_REPORT.md) | тест-отчёт (87 тестов) |
+| [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md) | release notes |
 
 
 ## Быстрый старт (после STAGE 1)
@@ -70,7 +76,7 @@ Android (APK/AAB), iOS (IPA/проект подписанной сборки). �
 pnpm install
 pnpm typecheck   # сборка пакетов + проверка типов (8 проектов)
 pnpm build       # dist/ у 6 пакетов + apps/web/dist (Vite)
-pnpm test        # 72 теста: core-contracts, design-system, runner, gate-service, ai-provider, sync-engine, server, web
+pnpm test        # 87 тестов: core-contracts, design-system, runner, gate-service, ai-provider, sync-engine, server, web
 ```
 
 Сервер: `pnpm --filter @neuroos/server dev` (или `node apps/server/dist/main.js`) → `http://127.0.0.1:3000/healthz`.
