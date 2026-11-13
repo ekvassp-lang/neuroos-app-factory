@@ -19,6 +19,7 @@ export interface StoreEvent {
     | 'job.updated'
     | 'gate.updated'
     | 'artifact.created'
+    | 'release.created'
     | 'settings.updated';
   payload: unknown;
 }

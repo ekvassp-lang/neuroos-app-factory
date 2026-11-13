@@ -8,6 +8,7 @@ import type {
   Project,
   Release,
 } from '@neuroos/core-contracts';
+export type { Release };
 
 export class ApiError extends Error {
   constructor(
@@ -110,6 +111,14 @@ export interface ListResponse<T> {
   items: T[];
 }
 
+export interface UpdateCheck {
+  channel: string;
+  currentVersion: string;
+  latestVersion: string;
+  updateAvailable: boolean;
+  latest: Release;
+}
+
 function withOfflineFallback<T>(op: () => Promise<T>, kind: string, payload: unknown): Promise<T> {
   return op().catch((error: unknown) => {
     if (isNetworkError(error)) {
@@ -150,6 +159,10 @@ export const api = {
     request<Gate>('POST', `/api/v1/projects/${slug}/gates/${code}/reject`),
   artifacts: () => request<ListResponse<Artifact>>('GET', '/api/v1/artifacts'),
   releases: () => request<ListResponse<Release>>('GET', '/api/v1/releases'),
+  createRelease: (projectId: string, version: string, channel: string, notes: string) =>
+    request<Release>('POST', '/api/v1/releases', { projectId, version, channel, notes }),
+  checkUpdates: (channel: string, currentVersion: string) =>
+    request<UpdateCheck>('GET', `/api/v1/updates/latest?channel=${encodeURIComponent(channel)}&currentVersion=${encodeURIComponent(currentVersion)}`),
   settings: () => request<FactorySettings>('GET', '/api/v1/settings'),
   updateSettings: (patch: Partial<FactorySettings>) =>
     request<FactorySettings>('PUT', '/api/v1/settings', patch),

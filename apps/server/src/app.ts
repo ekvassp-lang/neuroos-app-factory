@@ -2,7 +2,7 @@ import Fastify from 'fastify';
 import path from 'node:path';
 import { mkdir, writeFile } from 'node:fs/promises';
 import websocket from '@fastify/websocket';
-import type { ArtifactKind, FactorySettings, GateCode, Job, Project } from '@neuroos/core-contracts';
+import type { ArtifactKind, FactorySettings, GateCode, Job, Project, Release, ReleaseChannel } from '@neuroos/core-contracts';
 import {
   assertTransition,
   approveGate,
@@ -59,6 +59,14 @@ export interface SyncOperationInput {
   };
 }
 
+function compareVersions(a: string, b: string): number {
+  const [aMajor, aMinor, aPatch] = a.split('.').map(Number);
+  const [bMajor, bMinor, bPatch] = b.split('.').map(Number);
+  if (aMajor !== bMajor) return aMajor - bMajor;
+  if (aMinor !== bMinor) return aMinor - bMinor;
+  return aPatch - bPatch;
+}
+
 export async function createApp(options: CreateAppOptions = {}) {
   const persistence = options.persistPath
     ? createPersistence(options.persistPath, () => store.state)
@@ -81,7 +89,7 @@ export async function createApp(options: CreateAppOptions = {}) {
   app.get('/healthz', async () => ({
     status: 'ok',
     service: 'neuroos-app-factory-server',
-    version: '0.5.0',
+    version: '0.6.0',
   }));
 
   app.get('/api/v1/overview', async () => {
@@ -486,6 +494,81 @@ export async function createApp(options: CreateAppOptions = {}) {
   );
 
   app.get('/api/v1/releases', async () => ({ items: state.releases }));
+
+  app.post<{ Body: { projectId?: string; version?: string; channel?: string; notes?: string; artifactIds?: string[] } }>(
+    '/api/v1/releases',
+    async (req, reply) => {
+      const body = req.body ?? {};
+      const project = state.projects.find((p) => p.id === body.projectId);
+      if (!project) {
+        return reply.code(404).send({ error: 'project not found' });
+      }
+      const version = body.version ?? '';
+      if (!/^\d+\.\d+\.\d+$/.test(version)) {
+        return reply.code(400).send({ error: 'version must be semver x.y.z' });
+      }
+      const channel = body.channel as ReleaseChannel | undefined;
+      const channels: ReleaseChannel[] = ['stable', 'beta', 'alpha', 'dev'];
+      if (!channel || !channels.includes(channel)) {
+        return reply.code(400).send({ error: 'channel must be one of stable, beta, alpha, dev' });
+      }
+      const duplicate = state.releases.some((r) => r.projectId === project.id && r.version === version && r.channel === channel);
+      if (duplicate) {
+        return reply.code(409).send({ error: 'release with this version and channel already exists' });
+      }
+      const projectGateCodes = new Set(
+        state.gates.filter((g) => g.projectId === project.id && g.status === 'approved').map((g) => g.code),
+      );
+      const required: GateCode[] = channel === 'stable' ? ['G5', 'G6'] : channel === 'beta' ? ['G5'] : [];
+      const missing = required.filter((c) => !projectGateCodes.has(c));
+      if (missing.length > 0) {
+        return reply.code(409).send({
+          error: `channel '${channel}' requires approved gates: ${missing.join(', ')}`,
+          missing,
+        });
+      }
+      const release: Release = {
+        id: `rel-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        projectId: project.id,
+        version,
+        channel,
+        notes: body.notes ?? '',
+        artifactIds: body.artifactIds ?? [],
+        createdAt: new Date().toISOString(),
+        releasedAt: new Date().toISOString(),
+      };
+      state.releases.push(release);
+      broadcaster.publish({ type: 'release.created', payload: release }, state);
+      return reply.code(201).send(release);
+    },
+  );
+
+  app.get<{ Querystring: { channel?: string; currentVersion?: string } }>(
+    '/api/v1/updates/latest',
+    async (req, reply) => {
+      const channel = req.query.channel as ReleaseChannel | undefined;
+      const channels: ReleaseChannel[] = ['stable', 'beta', 'alpha', 'dev'];
+      if (!channel || !channels.includes(channel)) {
+        return reply.code(400).send({ error: 'channel must be one of stable, beta, alpha, dev' });
+      }
+      const currentVersion = req.query.currentVersion ?? '0.0.0';
+      if (!/^\d+\.\d+\.\d+$/.test(currentVersion)) {
+        return reply.code(400).send({ error: 'currentVersion must be semver x.y.z' });
+      }
+      const candidates = state.releases.filter((r) => r.channel === channel);
+      if (candidates.length === 0) {
+        return reply.code(404).send({ error: `no releases in channel '${channel}'` });
+      }
+      const latest = candidates.reduce((a, b) => (compareVersions(b.version, a.version) > 0 ? b : a));
+      return {
+        channel,
+        currentVersion,
+        latestVersion: latest.version,
+        updateAvailable: compareVersions(latest.version, currentVersion) > 0,
+        latest,
+      };
+    },
+  );
 
   app.get('/api/v1/settings', async () => state.settings);
 
