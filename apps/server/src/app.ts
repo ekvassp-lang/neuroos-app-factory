@@ -117,8 +117,14 @@ export async function createApp(options: CreateAppOptions = {}) {
   const authTokens = options.authTokens ?? parseAuthTokens(process.env.NF_AUTH_TOKENS);
   const authEnabled = Object.keys(authTokens).length > 0;
 
-  const app = Fastify({ logger: false });
+  const app = Fastify({ logger: false, bodyLimit: 2 * 1024 * 1024 });
   await app.register(websocket);
+
+  app.addHook('onSend', async (_req, reply) => {
+    reply.header('x-content-type-options', 'nosniff');
+    reply.header('x-frame-options', 'DENY');
+    reply.header('referrer-policy', 'no-referrer');
+  });
 
   app.addHook('onRequest', async (req, reply) => {
     if (!authEnabled) return;

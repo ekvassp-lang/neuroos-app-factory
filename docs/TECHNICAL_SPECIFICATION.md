@@ -70,7 +70,8 @@ engineer — рабочие операции (projects/jobs/sync) без вор�
 
 14 сущностей контракта `core-contracts`: Project (с revision), LifecycleEvent,
 Job, Artifact, RunnerLog, Gate, Release, FactorySettings и др. Полная схема
-PostgreSQL — `migrations/0001_init.sql`.
+PostgreSQL — `migrations/0001_init.sql` (применение и CHECK-ограничения
+проверены на pg-mem-эмуляции; реальный PG — NOT TESTED).
 
 ## 6. Жизненный цикл проекта
 

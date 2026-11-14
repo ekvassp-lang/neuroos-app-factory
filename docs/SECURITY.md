@@ -44,6 +44,10 @@
 
 ## 7. Сеть и данные
 
+- Hardening API: `bodyLimit` 2 МиБ (413 при превышении); заголовки
+  `x-content-type-options: nosniff`, `x-frame-options: DENY`,
+  `referrer-policy: no-referrer` на всех ответах.
+
 - Сервер по умолчанию слушает 127.0.0.1:3000 (loopback).
 - Персистентность — атомарная запись (tmp+rename); повреждённый снапшот не
   приводит к падению (старт с чистым состоянием).

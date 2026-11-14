@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getApiToken, wasFromCache } from './api.js';
+import { ApiError, getApiToken, wasFromCache } from './api.js';
+
+function describeError(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err);
+  if (err instanceof ApiError && err.status === 401) {
+    return `${message} — задайте токен в Settings → «Доступ (токен API)»`;
+  }
+  return message;
+}
 
 export interface ApiResult<T> {
   data: T | null;
@@ -32,7 +40,7 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = []): ApiR
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : String(err));
+          setError(describeError(err));
           setFromCache(false);
         }
       })

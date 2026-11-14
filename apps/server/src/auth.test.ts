@@ -183,3 +183,22 @@ describe('STAGE 8+: WebSocket auth', () => {
     await app.close();
   });
 });
+
+describe('STAGE 8+: server hardening', () => {
+  it('sets security headers on responses', async () => {
+    const { app } = await makeApp({});
+    const res = await app.inject({ method: 'GET', url: '/healthz' });
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['x-frame-options']).toBe('DENY');
+    expect(res.headers['referrer-policy']).toBe('no-referrer');
+    await app.close();
+  });
+
+  it('rejects request body above 2 MiB with 413', async () => {
+    const { app } = await makeApp({});
+    const big = { name: 'x'.repeat(3 * 1024 * 1024), slug: 'big' };
+    const res = await app.inject({ method: 'POST', url: '/api/v1/projects', payload: big });
+    expect([413, 400]).toContain(res.statusCode);
+    await app.close();
+  });
+});

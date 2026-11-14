@@ -662,3 +662,38 @@ RELEASE HUB и UPDATE MANAGER v1 реализованы, серверные пр
 | IndexedDBKV + OperationQueue поверх него | DONE — 3 теста |
 | Очередь в браузере на IndexedDB с fallback | DONE — fallback-ветка покрыта jsdom-тестами |
 | Миграция очереди из старого localStorage | NOT IMPLEMENTED (внутренняя v0.1; данные не теряются — старые операции просто остаются в localStorage) |
+
+---
+
+# Дополнение 5 (пост-STAGE 8) — pg-mem smoke миграции, hardening API, 401-подсказка
+
+## 1. Контекст
+
+- Песочница была сброшена между сессиями (/workspace очищен); репозиторий
+  клонирован заново из GitHub (HEAD 14ad058), 100 тестов зелёные до начала работ.
+- Повторная попытка PostgreSQL: root/docker недоступны (sudo — no new privileges,
+  dpkg lock denied) — реальный PG остаётся NOT TESTED.
+
+## 2. Что сделано
+
+- `apps/server/src/migration.test.ts` — 2 теста: миграция применяется на
+  pg-mem, CHECK-ограничения работают (невалидные role/gate code отклоняются).
+  Статус миграции честно повышен: NOT TESTED → «проверено на pg-mem-эмуляции;
+  реальный PG NOT TESTED».
+- `apps/server/src/app.ts` — hardening без новых зависимостей: bodyLimit 2 МиБ,
+  security-заголовки (nosniff, DENY, no-referrer) через onSend.
+- `apps/web/src/hooks.ts` — describeError: 401 дополняется подсказкой про
+  Settings → «Доступ (токен API)».
+
+## 3. Верификация
+
+- `pnpm test` — 105 зелёных (47 server, 10 web, 48 packages); typecheck 0 ошибок.
+
+## 4. Честные статусы
+
+| Пункт | Статус |
+|---|---|
+| Схема 0001_init.sql на pg-mem | DONE — 2 теста (эмуляция) |
+| Реальный PostgreSQL/pg-boss | NOT TESTED — нет root/docker в песочнице |
+| Hardening (bodyLimit, security-заголовки) | DONE — 2 теста |
+| 401-подсказка в UI | DONE — 1 тест |

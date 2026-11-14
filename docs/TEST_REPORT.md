@@ -117,3 +117,14 @@
   fallback на LocalStorageKV, если indexedDB недоступен (jsdom-тесты идут по
   fallback-ветке). Честная пометка: очередь из старого localStorage не
   переносится автоматически.
+
+# Дополнение 4 (пост-STAGE 8) — pg-mem smoke миграции, hardening API, 401-подсказка (5 новых тестов, итого 105)
+
+- `apps/server/src/migration.test.ts` (2): миграция 0001_init.sql применяется
+  на pg-mem-эмуляции PostgreSQL (users/projects/gates inserts, CHECK-ограничения
+  ролей и кодов ворот отклоняют невалидные значения). Честная пометка: это
+  эмуляция — реальный PostgreSQL остаётся NOT TESTED (в песочнице нет root/docker).
+- Hardening (2): security-заголовки (nosniff/DENY/no-referrer) на всех ответах;
+  bodyLimit 2 МиБ — тело больше лимита отклоняется (413/400).
+- Web (1): useApi честно дополняет ошибку 401 подсказкой «задайте токен в
+  Settings → „Доступ (токен API)“».
