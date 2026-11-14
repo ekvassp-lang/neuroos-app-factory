@@ -74,6 +74,11 @@ export function ReleaseCenter() {
             {items.map((r) => (
               <li key={r.id}>
                 <strong>{r.version}</strong> · канал <strong>{r.channel}</strong> · {r.notes || 'без notes'}
+                <div className="nf-muted-text">
+                  {r.artifactIds.length > 0
+                    ? `артефакты (${r.artifactIds.length}): ${r.artifactIds.join(', ')}`
+                    : 'артефакты не привязаны (зарегистрируйте их через POST /api/v1/projects/<slug>/artifacts)'}
+                </div>
               </li>
             ))}
           </ul>
