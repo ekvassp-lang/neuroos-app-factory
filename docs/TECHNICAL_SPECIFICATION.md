@@ -56,6 +56,7 @@ scripts/            security-scan.mjs (SAST + сканер секретов)
 | GET /api/v1/projects/:slug/gates | вычисленные ворота G0–G6 + решения |
 | POST /api/v1/projects/:slug/gates/:code/approve | одобрение (G0/G6 — owner-only) |
 | POST /api/v1/projects/:slug/gates/:code/reject | отклонение |
+| GET /api/v1/artifacts/:id/download | файл артефакта с проверкой SHA-256 (409 при расхождении); 404 различает «нет записи»/«нет файла» |
 | GET/POST /api/v1/projects/:slug/artifacts | артефакты; POST проверяет SHA-256 (409 при расхождении) |
 | GET/POST /api/v1/jobs, POST /:id/run, /:id/cancel | задания и конвейер code_task→build_run→test_run |
 | GET /api/v1/events | журнал событий жизненного цикла |

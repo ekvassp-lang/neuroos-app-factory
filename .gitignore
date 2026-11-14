@@ -8,3 +8,6 @@ releases/*
 coverage/
 
 apps/server/data/
+
+# runtime data dir (server snapshots, scaffolded projects, artifacts)
+data/

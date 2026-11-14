@@ -15,7 +15,7 @@ NOT IMPLEMENTED / NOT TESTED.
 | RF-5 | CODE BUILDER: Git на проект, поэтапная реализация, проверка сборки | `apps/server/src/worker.ts` (code_task → git init, build_run, test_run) | stage3.test (конвейер), live smoke | **DONE** — локальные команды через RUNNER; push во внешние ремоуты NOT IMPLEMENTED |
 | RF-6 | UI STUDIO: дизайн-система, экраны, темы | `packages/design-system`, 8 экранов `apps/web/src/screens/`, тёмная/светлая темы | 1 тест design-system, App.test | **DONE** |
 | RF-7 | Запрещены фейки/заглушки | Политика NO FAKE SUCCESS во всех отчётах (§11/AUDIT.md) | AUDIT.md — честные статусы каждого этапа | **DONE** (процесс) |
-| RF-8 | TEST CENTER: автотесты, проверка перезапуска/офлайна/синхронизации | vitest по всем пакетам; `stage4.test.ts`, `stage6.test.ts` | 111 тестов; docs/TEST_REPORT.md | **DONE** — перезапуск (backup/restore), офлайн-очередь, sync покрыты |
+| RF-8 | TEST CENTER: автотесты, проверка перезапуска/офлайна/синхронизации | vitest по всем пакетам; `stage4.test.ts`, `stage6.test.ts` | 116 тестов; docs/TEST_REPORT.md | **DONE** — перезапуск (backup/restore), офлайн-очередь, sync покрыты |
 | RF-9 | AUDIT CENTER: независимая проверка, AUDIT.md по этапам | `docs/AUDIT.md` (все этапы + дополнения), экран AuditCenter, SAST-сканер | stage6.test, security-scan | **DONE** |
 | RF-10 | BUILD CENTER: матрица артефактов, `/releases/` | `src-tauri/`, `.github/workflows/desktop.yml`, `releases/v0.1.0/checksums-sha256.txt` | CI-матрица 3 ОС — 7 артефактов (run 43434053581) | **PARTIAL** — Web/PWA/Win/macOS/Linux DONE; APK/AAB/IPA NOT IMPLEMENTED |
 | RF-11 | Запрещено заявлять несобранные установщики; BLOCKED с причиной | Честные отчёты; INSTALLATION.md — предупреждения о неподписанных сборках | AUDIT.md, checksums | **DONE** (процесс) |
@@ -25,7 +25,7 @@ NOT IMPLEMENTED / NOT TESTED.
 | RF-15 | Offline/Online: локальная БД, очередь, восстановление, синхронизация, конфликты, защита от дублей | `packages/sync-engine` (OperationQueue, LWW, idempotency), `persistence.ts`, `/api/v1/sync`, localStorage-кэш UI | 15 тестов sync-engine (вкл. IndexedDBKV), stage4.test (6), offline-тесты web | **DONE** — IndexedDB-адаптер (`IndexedDBKV`) с fallback на localStorage; очередь офлайн-операций в браузере хранится в IndexedDB |
 | RF-16 | AI PROVIDER HUB: провайдеры, ключи, назначение модели, история, ошибки/лимиты | `packages/ai-provider` (ProviderRegistry, key_ref, smoke-test), экран AIWorkspace | 12 тестов ai-provider | **PARTIAL** — каркас DONE; реальные провайдеры BLOCKED (нет ключей) |
 | RF-17 | Запрещено заявлять интеграции без проверки | smoke-test обязателен до включения провайдера | ai-provider тесты gating | **DONE** (процесс) |
-| RF-18 | ARTIFACT REGISTRY: типы артефактов, версии, целостность, доступ, восстановление | POST артефактов с SHA-256 (409), 11 ArtifactKind, `releases/` каталог | stage3/stage7 тесты; checksums-sha256.txt | **DONE** — разграничение доступа к артефактам через роли API v0.7.0 |
+| RF-18 | ARTIFACT REGISTRY: типы артефактов, версии, целостность, доступ, восстановление | POST артефактов с SHA-256 (409), GET /api/v1/artifacts/:id/download с проверкой SHA-256 при отдаче (409), 11 ArtifactKind, `releases/` каталог | stage3/stage7/artifactDownload тесты; checksums-sha256.txt | **DONE** — разграничение доступа через роли API v0.7.0; скачивание файлов с integrity-проверкой |
 | RF-19 | PROJECT MANAGER: список, статусы, дашборды (8) | 8 экранов, 14 статусов, GlobalDashboard/ProjectsDashboard | App.test, stage3.test | **DONE** |
 
 ## 2. Нефункциональные требования
@@ -44,7 +44,7 @@ NOT IMPLEMENTED / NOT TESTED.
 
 | Пункт | Реализация | Тесты/артефакты | Статус |
 |---|---|---|---|
-| Машинночитаемая спека API | `docs/openapi.json` — OpenAPI 3.1.0, 19 путей, bearerAuth, честные описания ролей и кодов ошибок | openapi.test (спека v0.7.0, bearerAuth, ≥17 путей) | **DONE** |
+| Машинночитаемая спека API | `docs/openapi.json` — OpenAPI 3.1.0, 20 путей, bearerAuth, честные описания ролей и кодов ошибок | openapi.test (спека v0.7.0, bearerAuth, ≥17 путей) | **DONE** |
 | Соответствие спека↔сервер | двунаправленная проверка: inject живого сервера + обратное покрытие обязательных маршрутов | openapi.test (route-404 = несоответствие; бизнес-404 допустим) | **DONE** — /ws в inject-проверке NOT TESTED (light-my-request не делает WebSocket-upgrade; WS покрыт auth.test.ts) |
 | Раздача спеки сервером | `GET /api/v1/openapi.json` — открыт всегда (как /healthz), 503 при отсутствии файла | openapi.test (открыт при включённой auth) + живой смоук из dist | **DONE** |
 | Доступность спеки пользователю | Settings → «API-контракт (OpenAPI)» (кнопка скачивания); USER_GUIDE раздел 5 с примерами запросов | openapiLink.test (jsdom) | **DONE** |

@@ -76,7 +76,7 @@ export NF_AUTH_TOKENS="владельческий-токен:owner,инжене�
 
 Сервер публикует собственный машинночитаемый контракт:
 
-- **`GET /api/v1/openapi.json`** — OpenAPI 3.1, 19 путей, securityScheme `bearerAuth`.
+- **`GET /api/v1/openapi.json`** — OpenAPI 3.1, 20 путей, securityScheme `bearerAuth`.
   Эндпоинт открыт всегда (как `/healthz`), токен не требуется. Если файл спеки
   не найден на диске — честный 503.
 - В веб-интерфейсе спека скачивается в **Settings → «API-контракт (OpenAPI)»**.

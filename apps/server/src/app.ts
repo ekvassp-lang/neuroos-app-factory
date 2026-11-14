@@ -489,6 +489,32 @@ export async function createApp(options: CreateAppOptions = {}) {
     return { items };
   });
 
+  app.get<{ Params: { id: string } }>('/api/v1/artifacts/:id/download', async (req, reply) => {
+    const artifact = state.artifacts.find((a) => a.id === req.params.id);
+    if (!artifact) {
+      return reply.code(404).send({ error: 'artifact not found' });
+    }
+    const filename = artifact.storageKey.split('/').pop() ?? 'artifact.bin';
+    const target = artifactPath(dataDir, artifact.projectId, artifact.kind, artifact.version, filename);
+    if (!path.resolve(target).startsWith(path.resolve(dataDir) + path.sep)) {
+      return reply.code(400).send({ error: 'invalid artifact storage key' });
+    }
+    let content: Buffer;
+    try {
+      content = await readFile(target);
+    } catch {
+      return reply.code(404).send({ error: 'artifact file not found on disk' });
+    }
+    const computed = sha256(content);
+    if (computed !== artifact.sha256) {
+      return reply.code(409).send({ error: 'sha256 mismatch on download', declared: artifact.sha256, computed });
+    }
+    reply.header('content-type', 'application/octet-stream');
+    reply.header('content-disposition', `attachment; filename="${filename.replace(/["\\]/g, '_')}"`);
+    reply.header('x-artifact-sha256', artifact.sha256);
+    return content;
+  });
+
   app.post<{ Params: { slug: string }; Body: { kind?: string; version?: string; filename?: string; contentBase64?: string; sha256?: string } }>(
     '/api/v1/projects/:slug/artifacts',
     async (req, reply) => {

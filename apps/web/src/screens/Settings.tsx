@@ -125,7 +125,7 @@ export function Settings() {
       <Card title="API-контракт (OpenAPI)">
         <p className="nf-muted-text">
           Сервер публикует машинночитаемую спецификацию API v0.7.0 (OpenAPI 3.1,
-          19 путей) — открытый эндпоинт, токен не требуется.
+          20 путей) — открытый эндпоинт, токен не требуется.
         </p>
         <a
           className="nf-button nf-button-link"

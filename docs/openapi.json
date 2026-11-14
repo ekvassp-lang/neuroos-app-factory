@@ -452,6 +452,22 @@
           }
         }
       }
+    },
+    "/api/v1/artifacts/{id}/download": {
+      "get": {
+        "summary": "Скачать файл артефакта с проверкой SHA-256",
+        "responses": {
+          "200": {
+            "description": "application/octet-stream; заголовки x-artifact-sha256 и content-disposition"
+          },
+          "404": {
+            "description": "артефакт не найден или файл отсутствует на диске (честно различаются в теле ошибки)"
+          },
+          "409": {
+            "description": "sha256 mismatch on download — файл на диске не совпадает с записью реестра"
+          }
+        }
+      }
     }
   },
   "components": {

@@ -91,6 +91,7 @@ describe('OpenAPI spec vs live routes', () => {
       '/api/v1/projects/{slug}/gates/{code}/reject',
       '/api/v1/projects/{slug}/artifacts',
       '/api/v1/artifacts',
+      '/api/v1/artifacts/{id}/download',
       '/api/v1/events',
       '/api/v1/jobs',
       '/api/v1/jobs/{id}/run',
