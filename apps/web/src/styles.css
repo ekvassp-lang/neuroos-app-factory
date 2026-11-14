@@ -226,6 +226,11 @@ body {
   cursor: default;
 }
 
+.nf-button-link {
+  display: inline-block;
+  text-decoration: none;
+}
+
 .nf-error {
   border: 1px solid var(--nf-special);
   border-radius: var(--nf-radius);

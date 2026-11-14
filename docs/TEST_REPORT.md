@@ -160,3 +160,15 @@
   application/json, info.version 0.7.0, путь самопредставлен в спеке.
 - Живой смоук: healthz 200 (0.7.0, auth:disabled), openapi.json 200 (19 путей),
   overview 200 в открытом режиме.
+
+# Дополнение 7 (пост-STAGE 8) — скачивание OpenAPI-спеки в web-UI, USER_GUIDE (1 новый тест, итого 111)
+
+- `apps/web/src/screens/Settings.tsx` — новая карточка «API-контракт (OpenAPI)»:
+  ссылка-кнопка «Скачать OpenAPI-спеку» (data-testid `openapi-download`,
+  `href="/api/v1/openapi.json"`, `download="neuroos-app-factory-openapi.json"`);
+  эндпоинт открыт всегда, токен не требуется. CSS: `.nf-button-link`.
+- `apps/web/src/openapiLink.test.tsx` (1): ссылка присутствует в Settings,
+  href и download-атрибут корректны.
+- `docs/USER_GUIDE.md` — новый раздел 5 «Программный доступ к API (OpenAPI)»:
+  эндпоинт спеки, скачивание из UI, примеры запросов (healthz, спека, проекты
+  с Bearer-токеном, создание проекта), пометка о спеке как источнике истины.

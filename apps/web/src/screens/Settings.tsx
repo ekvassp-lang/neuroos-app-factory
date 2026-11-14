@@ -122,6 +122,20 @@ export function Settings() {
           </p>
         </form>
       </Card>
+      <Card title="API-контракт (OpenAPI)">
+        <p className="nf-muted-text">
+          Сервер публикует машинночитаемую спецификацию API v0.7.0 (OpenAPI 3.1,
+          19 путей) — открытый эндпоинт, токен не требуется.
+        </p>
+        <a
+          className="nf-button nf-button-link"
+          href="/api/v1/openapi.json"
+          download="neuroos-app-factory-openapi.json"
+          data-testid="openapi-download"
+        >
+          Скачать OpenAPI-спеку
+        </a>
+      </Card>
     </div>
   );
 }
