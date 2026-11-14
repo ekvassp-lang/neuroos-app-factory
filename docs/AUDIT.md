@@ -697,3 +697,35 @@ RELEASE HUB и UPDATE MANAGER v1 реализованы, серверные пр
 | Реальный PostgreSQL/pg-boss | NOT TESTED — нет root/docker в песочнице |
 | Hardening (bodyLimit, security-заголовки) | DONE — 2 теста |
 | 401-подсказка в UI | DONE — 1 тест |
+
+# Дополнение 6 (пост-STAGE 8) — OpenAPI 3.1 спецификация API v0.7.0
+
+## 1. Контекст
+
+Спецификация API существовала только в виде таблицы в TECHNICAL_SPECIFICATION.md;
+машинночитаемого контракта не было. Задача: формализовать API v0.7.0 в OpenAPI
+и гарантировать соответствие спеки живым маршрутам тестами.
+
+## 2. Что сделано
+
+- `docs/openapi.json` — OpenAPI 3.1.0, 18 путей, securityScheme `bearerAuth`;
+  /healthz и /ws без auth; честные описания ролей и кодов ошибок (401/403/409/413).
+- `apps/server/src/openapi.test.ts` — двунаправленная проверка соответствия:
+  спека → живой сервер (inject, route-404 = несоответствие) и обязательные
+  маршруты → спека. /ws исключён из inject-проверки (light-my-request не делает
+  WebSocket-upgrade; WS покрыт auth.test.ts) — пометка честная.
+- Исправление в процессе отладки: пустое тело 404 от WS-маршрута ломало
+  res.json() — добавлен безопасный разбор.
+
+## 3. Верификация
+
+- `pnpm test` — 108 зелёных (50 server, 10 web, 48 packages); typecheck 0 ошибок.
+
+## 4. Честные статусы
+
+| Пункт | Статус |
+|---|---|
+| OpenAPI-спецификация API v0.7.0 | DONE — docs/openapi.json, 18 путей |
+| Соответствие спека↔сервер (тесты) | DONE — 3 теста |
+| /ws в inject-проверке | NOT TESTED — ограничение light-my-request, WS покрыт auth.test.ts |
+| Генерация клиентов/сервера из спеки | NOT IMPLEMENTED — не входит в текущий объём |

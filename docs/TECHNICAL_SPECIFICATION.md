@@ -42,6 +42,10 @@ scripts/            security-scan.mjs (SAST + сканер секретов)
 
 ## 4. API v0.7.0 (фактические endpoints)
 
+Машинночитаемый контракт: [docs/openapi.json](openapi.json) — OpenAPI 3.1.0,
+18 путей, bearerAuth; соответствие спеки живым маршрутам гарантировано
+тестами `apps/server/src/openapi.test.ts`.
+
 | Метод и путь | Назначение |
 |---|---|
 | GET /healthz | версия API, статус, режим аутентификации (auth: enabled/disabled) |

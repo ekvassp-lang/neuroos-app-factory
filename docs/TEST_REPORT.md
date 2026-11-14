@@ -128,3 +128,21 @@
   bodyLimit 2 МиБ — тело больше лимита отклоняется (413/400).
 - Web (1): useApi честно дополняет ошибку 401 подсказкой «задайте токен в
   Settings → „Доступ (токен API)“».
+
+# Дополнение 5 (пост-STAGE 8) — OpenAPI 3.1 спецификация API v0.7.0 (3 новых теста, итого 108)
+
+- `docs/openapi.json` — OpenAPI 3.1.0: info.version 0.7.0, securityScheme `bearerAuth`
+  (Bearer-токен из NF_AUTH_TOKENS), 18 путей — все фактические маршруты сервера,
+  включая /healthz и /ws (без auth). Описания честные: ограничения ролей
+  (owner-only для approve/reject, viewer read-only) и коды ошибок (401/403/409/413).
+- `apps/server/src/openapi.test.ts` (3):
+  1. спека описывает v0.7.0, содержит bearerAuth, ≥17 путей;
+  2. каждый задокументированный path+method существует на живом сервере
+     (app.inject; route-404 Fastify = несоответствие; бизнес-404
+     «project not found»/«job not found» допустимы). Честная пометка: `/ws`
+     исключён из inject-проверки — light-my-request не выполняет WebSocket-upgrade;
+     WS-авторизация и доставка покрыты тестами auth.test.ts;
+  3. все 18 обязательных маршрутов присутствуют в спеке (обратное покрытие).
+- Отладка: исходная версия теста падала («Unexpected end of JSON input») —
+  res.json() на пустом теле 404 от WS-маршрута; исправлено безопасным разбором
+  тела + явным исключением /ws.

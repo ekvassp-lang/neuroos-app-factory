@@ -1,0 +1,84 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "NeuroOS App Factory API",
+    "version": "0.7.0",
+    "description": "API фабрики приложений NeuroOS. Аутентификация (v0.7.0): Bearer-токены из NF_AUTH_TOKENS (token:role), роли owner/engineer/viewer. Без токенов — открытый режим. /healthz и WebSocket /ws (токен в ?token=) — вне /api/v1/."
+  },
+  "servers": [{ "url": "http://127.0.0.1:3000" }],
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/healthz": {
+      "get": {
+        "summary": "Состояние сервиса (открыт всегда)",
+        "security": [],
+        "responses": { "200": { "description": "status, service, version, auth: enabled|disabled" } }
+      }
+    },
+    "/api/v1/overview": {
+      "get": { "summary": "Сводка фабрики (totals, byStatus, recentEvents)", "responses": { "200": { "description": "OK" }, "401": { "description": "нет/неверный токен" } } }
+    },
+    "/api/v1/projects": {
+      "get": { "summary": "Список проектов", "responses": { "200": { "description": "items: Project[]" }, "401": { "description": "401" } } },
+      "post": { "summary": "Создание проекта (name, slug; критерии приёмки задаются PATCH)", "responses": { "201": { "description": "Project" }, "400": { "description": "невалидный ввод" }, "401": { "description": "401" }, "403": { "description": "viewer" } } }
+    },
+    "/api/v1/projects/{slug}": {
+      "get": { "summary": "Карточка проекта (project, events, jobs)", "parameters": [{ "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "ProjectDetail" }, "404": { "description": "не найден" } } },
+      "patch": { "summary": "Изменение проекта (статусы, критерии; RELEASED → 409 без G6)", "parameters": [{ "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Project" }, "409": { "description": "RELEASED requires G6" } } }
+    },
+    "/api/v1/projects/{slug}/gates": {
+      "get": { "summary": "Вычисленные ворота G0–G6 + решения", "parameters": [{ "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "items, decisions" } } }
+    },
+    "/api/v1/projects/{slug}/gates/{code}/approve": {
+      "post": { "summary": "Утверждение ворот (G0/G6 — owner-only; engineer/viewer — 403)", "parameters": [{ "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }, { "name": "code", "in": "path", "required": true, "schema": { "type": "string", "enum": ["G0", "G1", "G2", "G3", "G4", "G5", "G6"] } }], "responses": { "200": { "description": "Gate" }, "403": { "description": "GateApprovalError / роль" }, "409": { "description": "не хватает артефактов/проверок" } } }
+    },
+    "/api/v1/projects/{slug}/gates/{code}/reject": {
+      "post": { "summary": "Отклонение ворот", "parameters": [{ "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }, { "name": "code", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Gate" }, "403": { "description": "роль" } } }
+    },
+    "/api/v1/projects/{slug}/artifacts": {
+      "post": { "summary": "Регистрация артефакта (contentBase64 + sha256; расхождение → 409)", "parameters": [{ "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "201": { "description": "Artifact" }, "409": { "description": "sha256 mismatch" } } }
+    },
+    "/api/v1/artifacts": {
+      "get": { "summary": "Список артефактов (фильтр ?projectId=)", "parameters": [{ "name": "projectId", "in": "query", "schema": { "type": "string" } }], "responses": { "200": { "description": "items: Artifact[]" } } }
+    },
+    "/api/v1/events": {
+      "get": { "summary": "Журнал событий жизненного цикла (?projectId=)", "parameters": [{ "name": "projectId", "in": "query", "schema": { "type": "string" } }], "responses": { "200": { "description": "items: LifecycleEvent[]" } } }
+    },
+    "/api/v1/jobs": {
+      "get": { "summary": "Список заданий", "responses": { "200": { "description": "items: Job[]" } } },
+      "post": { "summary": "Создание задания (projectId, kind, idempotencyKey)", "responses": { "201": { "description": "Job" }, "400": { "description": "невалидный kind" } } }
+    },
+    "/api/v1/jobs/{id}/run": {
+      "post": { "summary": "Запуск задания (RUNNER; честные ошибки AI/unimplemented)", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "job, artifacts, logLines, error?" } } }
+    },
+    "/api/v1/jobs/{id}/cancel": {
+      "post": { "summary": "Отмена задания", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Job" } } }
+    },
+    "/api/v1/sync": {
+      "post": { "summary": "Батч-синхронизация офлайн-операций (idempotency, конфликты LWW, RELEASED-правило)", "responses": { "200": { "description": "results[]" }, "409": { "description": "RELEASED rule" } } }
+    },
+    "/api/v1/releases": {
+      "get": { "summary": "Реестр релизов", "responses": { "200": { "description": "items: Release[]" } } },
+      "post": { "summary": "Создание релиза (правила каналов: stable←G5+G6, beta←G5, alpha/dev свободно; дубль → 409)", "responses": { "201": { "description": "Release" }, "409": { "description": "missing gates / duplicate" }, "400": { "description": "version/channel" }, "404": { "description": "project not found" } } }
+    },
+    "/api/v1/updates/latest": {
+      "get": { "summary": "UPDATE MANAGER: последний релиз канала + семвер-сравнение", "parameters": [{ "name": "channel", "in": "query", "required": true, "schema": { "type": "string" } }, { "name": "currentVersion", "in": "query", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "channel, currentVersion, latestVersion, updateAvailable, latest" }, "400": { "description": "invalid input" }, "404": { "description": "нет релизов в канале" } } }
+    },
+    "/api/v1/settings": {
+      "get": { "summary": "Настройки фабрики", "responses": { "200": { "description": "FactorySettings" } } },
+      "put": { "summary": "Обновление настроек (owner; engineer/viewer — 403)", "responses": { "200": { "description": "FactorySettings" }, "403": { "description": "роль" } } }
+    },
+    "/ws": {
+      "get": {
+        "summary": "WebSocket живых событий (при включённой аутентификации — токен в ?token=)",
+        "security": [],
+        "responses": { "101": { "description": "Switching Protocols" }, "401": { "description": "нет токена" } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "description": "Токен из NF_AUTH_TOKENS; роль owner|engineer|viewer" }
+    }
+  }
+}
