@@ -146,6 +146,35 @@ export interface UpdateCheck {
   latest: Release;
 }
 
+export interface ArtifactUploadPayload {
+  kind: string;
+  version: string;
+  filename: string;
+  contentBase64: string;
+  sha256: string;
+}
+
+export interface FileUploadPayload {
+  filename: string;
+  contentBase64: string;
+  sha256: string;
+}
+
+export async function fileToUploadPayload(file: { name: string; arrayBuffer(): Promise<ArrayBuffer> }): Promise<FileUploadPayload> {
+  const buffer = await file.arrayBuffer();
+  const digest = await crypto.subtle.digest('SHA-256', buffer);
+  const sha256 = Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+  let binary = '';
+  for (const byte of new Uint8Array(buffer)) binary += String.fromCharCode(byte);
+  return {
+    filename: file.name,
+    contentBase64: btoa(binary),
+    sha256,
+  };
+}
+
 function withOfflineFallback<T>(op: () => Promise<T>, kind: string, payload: unknown): Promise<T> {
   return op().catch((error: unknown) => {
     if (isNetworkError(error)) {
@@ -185,6 +214,10 @@ export const api = {
   rejectGate: (slug: string, code: string) =>
     request<Gate>('POST', `/api/v1/projects/${slug}/gates/${code}/reject`),
   artifacts: () => request<ListResponse<Artifact>>('GET', '/api/v1/artifacts'),
+  uploadArtifact: (
+    slug: string,
+    payload: { kind: string; version: string; filename: string; contentBase64: string; sha256: string },
+  ) => request<Artifact>('POST', `/api/v1/projects/${slug}/artifacts`, payload),
   releases: () => request<ListResponse<Release>>('GET', '/api/v1/releases'),
   createRelease: (projectId: string, version: string, channel: string, notes: string) =>
     request<Release>('POST', '/api/v1/releases', { projectId, version, channel, notes }),

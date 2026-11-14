@@ -226,3 +226,22 @@ healthz (0.7.0) → создание проекта → PATCH статуса DEV
   раздел 0.7.0–0.8.0 (исторические записи AUDIT/TEST_REPORT не менялись).
 - `apps/web/src/artifactLink.test.tsx` (1): ссылка скачивания с корректными
   href и download-атрибутом.
+
+# Дополнение 12 (пост-STAGE 8) — upload-форма артефактов в UI (2 новых теста, итого 119)
+
+- ProjectWorkspace — новая карточка «Зарегистрировать артефакт»: выбор файла, тип
+  (11 ArtifactKind), версия; SHA-256 считается в браузере через Web Crypto
+  (`crypto.subtle.digest('SHA-256', …)`), файл уходит на сервер в base64
+  (POST /api/v1/projects/:slug/artifacts); честные статусы: успех (id + короткий
+  sha256), ошибки API (409 sha256 mismatch, 400 unknown kind) выводятся как есть.
+- `apps/web/src/api.ts`: `api.uploadArtifact(slug, payload)`, экспортируемый хелпер
+  `fileToUploadPayload(file)` (filename + contentBase64 + sha256).
+- `apps/web/src/artifactUpload.test.tsx` (2 jsdom-теста): (1) клиентский SHA-256
+  (стаб crypto.subtle) и точное тело POST (contentBase64 = btoa('hello'),
+  sha256 = hex стаба); (2) честная ошибка 409 sha256 mismatch без ложного успеха.
+- Живой смоук (dist-сервер, порт 3987): healthz 0.8.0 → создание проекта → upload 201
+  (sha256 совпадает с клиентским расчётом) → mismatch 409 → unknown kind 400 →
+  артефакт в detail → download 200 байт-в-байт + x-artifact-sha256. Итог: 9/9 OK.
+  Примечание: порты 3321/3712/3845 заняты сторонними процессами песочницы —
+  использован 3987.
+- Итог: 119 тестов (55 server, 16 web, 48 packages); typecheck 0 ошибок.

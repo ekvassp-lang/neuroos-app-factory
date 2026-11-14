@@ -211,6 +211,14 @@ body {
   color: var(--nf-text-muted);
 }
 
+.nf-field-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 0.75rem;
+}
+
 .nf-button {
   background: var(--nf-accent);
   color: #033438;
