@@ -113,6 +113,7 @@ export interface ProjectDetail {
   project: Project;
   events: LifecycleEvent[];
   jobs: Job[];
+  artifacts: Artifact[];
 }
 
 export interface GateEvaluation {

@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "NeuroOS App Factory API",
-    "version": "0.7.0",
-    "description": "API фабрики приложений NeuroOS. Аутентификация (v0.7.0): Bearer-токены из NF_AUTH_TOKENS (token:role), роли owner/engineer/viewer. Без токенов — открытый режим. /healthz и WebSocket /ws (токен в ?token=) — вне /api/v1/."
+    "version": "0.8.0",
+    "description": "API фабрики приложений NeuroOS. Аутентификация (с v0.7.0): Bearer-токены из NF_AUTH_TOKENS (token:role), роли owner/engineer/viewer. Без токенов — открытый режим. С v0.8.0: GET /api/v1/artifacts/{id}/download — отдача файлов артефактов с проверкой SHA-256. /healthz и WebSocket /ws (токен в ?token=) — вне /api/v1/."
   },
   "servers": [
     {

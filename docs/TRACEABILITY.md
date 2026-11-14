@@ -1,6 +1,6 @@
 # Матрица трассировки требований — NeuroOS App Factory
 
-Версия API: 0.7.0. Каждое требование из `docs/REQUIREMENTS.md` сопоставлено с
+Версия API: 0.8.0. Каждое требование из `docs/REQUIREMENTS.md` сопоставлено с
 реализацией, тестами и честным статусом. Статусы: DONE / PARTIAL / BLOCKED /
 NOT IMPLEMENTED / NOT TESTED.
 

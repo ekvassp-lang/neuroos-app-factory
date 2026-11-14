@@ -165,7 +165,7 @@ export async function createApp(options: CreateAppOptions = {}) {
   app.get('/healthz', async () => ({
     status: 'ok',
     service: 'neuroos-app-factory-server',
-    version: '0.7.0',
+    version: '0.8.0',
     auth: authEnabled ? 'enabled' : 'disabled',
   }));
 
@@ -257,6 +257,7 @@ export async function createApp(options: CreateAppOptions = {}) {
       project,
       events: state.events.filter((e) => e.projectId === project.id).reverse(),
       jobs: state.jobs.filter((j) => j.projectId === project.id).reverse(),
+      artifacts: state.artifacts.filter((a) => a.projectId === project.id).reverse(),
     };
   });
 

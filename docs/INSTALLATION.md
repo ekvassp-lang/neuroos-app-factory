@@ -19,7 +19,7 @@ node apps/server/dist/main.js
 pnpm --filter @neuroos/server dev
 ```
 
-Проверка: откройте `http://127.0.0.1:3000/healthz` — ожидается `{"status":"ok","version":"0.7.0","auth":"disabled",...}`.
+Проверка: откройте `http://127.0.0.1:3000/healthz` — ожидается `{"status":"ok","version":"0.8.0","auth":"disabled",...}`.
 
 Веб-оболочка:
 

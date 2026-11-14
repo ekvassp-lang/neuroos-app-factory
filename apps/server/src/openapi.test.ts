@@ -23,9 +23,9 @@ function fillParams(url: string): string {
 }
 
 describe('OpenAPI spec vs live routes', () => {
-  it('documents API v0.7.0 with bearer auth scheme', async () => {
+  it('documents API v0.8.0 with bearer auth scheme', async () => {
     const spec = JSON.parse(await readFile(path.join(process.cwd(), '../../docs/openapi.json'), 'utf8')) as Spec;
-    expect(spec.info.version).toBe('0.7.0');
+    expect(spec.info.version).toBe('0.8.0');
     expect(JSON.stringify(spec)).toContain('bearerAuth');
     expect(Object.keys(spec.paths).length).toBeGreaterThanOrEqual(17);
   });
@@ -72,7 +72,7 @@ describe('OpenAPI spec vs live routes', () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toContain('application/json');
     const served = JSON.parse(res.payload) as Spec;
-    expect(served.info.version).toBe('0.7.0');
+    expect(served.info.version).toBe('0.8.0');
     expect(Object.keys(served.paths)).toContain('/api/v1/openapi.json');
     await app.close();
   });

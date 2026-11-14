@@ -8,7 +8,7 @@ IDEA → SPECIFICATION → ARCHITECTURE → DEVELOPMENT → TESTING → AUDIT �
 ```
 
 - **Версия:** 0.1.0
-- **Статус:** STAGE 8 — Documentation завершён. Все 8 этапов STAGE 0–8 выполнены; релиз [v0.1.0](https://github.com/ekvassp-lang/neuroos-app-factory/releases/tag/v0.1.0) опубликован. Пост-роадмап: аутентификация и роли (API v0.7.0, owner/engineer/viewer). Сводка честных статусов — [docs/AUDIT.md](docs/AUDIT.md)
+- **Статус:** STAGE 8 — Documentation завершён. Все 8 этапов STAGE 0–8 выполнены; релиз [v0.1.0](https://github.com/ekvassp-lang/neuroos-app-factory/releases/tag/v0.1.0) опубликован. Пост-роадмап: аутентификация и роли (API v0.7.0), OpenAPI-контракт и скачивание артефактов (API v0.8.0). Сводка честных статусов — [docs/AUDIT.md](docs/AUDIT.md)
 - **Исполнительская среда:** Vibe Code (async agent); нормативный стандарт производства —
   `STANDARD — UNIVERSAL MULTIPLATFORM APP BUILDER` («003 промпт»)
 
@@ -61,11 +61,11 @@ Android (APK/AAB), iOS (IPA/проект подписанной сборки). �
 | [docs/IMPLEMENTATION_ROADMAP.md](docs/IMPLEMENTATION_ROADMAP.md) | план реализации STAGE 1–8 |
 | [docs/AUDIT.md](docs/AUDIT.md) | аудит всех этапов: что проверялось, что подтверждено |
 | [docs/TECHNICAL_SPECIFICATION.md](docs/TECHNICAL_SPECIFICATION.md) | техническая спецификация (по факту реализации) |
-| [docs/openapi.json](docs/openapi.json) | OpenAPI 3.1 контракт API v0.7.0 (20 путей, bearerAuth) |
+| [docs/openapi.json](docs/openapi.json) | OpenAPI 3.1 контракт API v0.8.0 (20 путей, bearerAuth) |
 | [docs/INSTALLATION.md](docs/INSTALLATION.md) | установка/удаление/восстановление |
 | [docs/BUILD.md](docs/BUILD.md) | сборка пакетов и десктоп-сборки |
 | [docs/SECURITY.md](docs/SECURITY.md) | безопасность: ключи, RUNNER, сканирование |
-| [docs/TEST_REPORT.md](docs/TEST_REPORT.md) | тест-отчёт (116 тестов) |
+| [docs/TEST_REPORT.md](docs/TEST_REPORT.md) | тест-отчёт (117 тестов) |
 | [docs/TRACEABILITY.md](docs/TRACEABILITY.md) | матрица трассировки RF-1…RF-19 / RN-1…RN-7 → реализация → тесты → статус |
 | [docs/USER_GUIDE.md](docs/USER_GUIDE.md) | руководство пользователя: интерфейс, сценарий, офлайн, роли |
 | [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md) | release notes |
@@ -79,7 +79,7 @@ Android (APK/AAB), iOS (IPA/проект подписанной сборки). �
 pnpm install
 pnpm typecheck   # сборка пакетов + проверка типов (8 проектов)
 pnpm build       # dist/ у 6 пакетов + apps/web/dist (Vite)
-pnpm test        # 116 тестов: core-contracts, design-system, runner, gate-service, ai-provider, sync-engine, server, web
+pnpm test        # 117 тестов: core-contracts, design-system, runner, gate-service, ai-provider, sync-engine, server, web
 ```
 
 Сервер: `pnpm --filter @neuroos/server dev` (или `node apps/server/dist/main.js`) → `http://127.0.0.1:3000/healthz`.

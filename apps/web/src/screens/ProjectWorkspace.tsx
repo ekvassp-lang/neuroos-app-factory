@@ -120,6 +120,34 @@ export function ProjectWorkspace() {
           </ul>
         )}
       </Card>
+      <Card title={`Артефакты проекта (${data.artifacts.length})`}>
+        {data.artifacts.length === 0 ? (
+          <EmptyState text="Артефактов нет — они появляются после заданий (build_run, test_run) или регистрации вручную" />
+        ) : (
+          <ul className="nf-list">
+            {data.artifacts.map((a) => {
+              const filename = a.storageKey.split('/').pop() ?? a.id;
+              return (
+                <li key={a.id}>
+                  <strong>{a.kind}</strong> · {filename} · {a.version} · sha256 {a.sha256.slice(0, 12)}…{' '}
+                  <a
+                    className="nf-button nf-button-link"
+                    href={`/api/v1/artifacts/${a.id}/download`}
+                    download={filename}
+                    data-testid={`artifact-download-${a.id}`}
+                  >
+                    Скачать
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <p className="nf-muted-text">
+          Скачивание идёт через GET /api/v1/artifacts/:id/download — сервер проверяет SHA-256
+          при каждой отдаче (409 при расхождении файла с реестром).
+        </p>
+      </Card>
       <Card title="Контрольные точки (G0–G6)">
         {gates.error && <ErrorBox message={gates.error} onRetry={gates.reload} />}
         {gateError && (

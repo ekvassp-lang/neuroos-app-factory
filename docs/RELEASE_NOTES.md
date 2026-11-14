@@ -39,6 +39,16 @@
 
 ---
 
+## 0.7.0–0.8.0 (пост-STAGE 8, API)
+
+- 0.7.0: аутентификация и роли (NF_AUTH_TOKENS, owner/engineer/viewer, включая /ws),
+  hardening (bodyLimit 2 МиБ, security-заголовки), OpenAPI 3.1 контракт
+  (docs/openapi.json + GET /api/v1/openapi.json), pg-mem smoke миграции,
+  401-подсказка в UI.
+- 0.8.0: GET /api/v1/artifacts/:id/download — файлы артефактов с проверкой
+  SHA-256 при каждой отдаче (409 при расхождении); артефакты в деталях проекта
+  и кнопка скачивания в ProjectWorkspace; OpenAPI-спека в Settings.
+
 ## 0.4.0–0.6.0 (внутренние версии API до первой публикации)
 
 - 0.4.0: sync-эндпоинт, fs-персистентность, офлайн-кэш UI.

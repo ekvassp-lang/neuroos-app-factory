@@ -1,6 +1,6 @@
 # TECHNICAL SPECIFICATION — NeuroOS App Factory
 
-Версия: 0.1.0 · API v0.7.0 · Актуализировано по факту реализации (STAGE 8 + auth/roles)
+Версия: 0.1.0 · API v0.8.0 · Актуализировано по факту реализации (STAGE 8 + auth/roles)
 
 ## 1. Общие сведения
 
@@ -27,7 +27,7 @@
 
 ```
 apps/
-  server/   Fastify API v0.7.0 + WebSocket + worker + persistence + auth
+  server/   Fastify API v0.8.0 + WebSocket + worker + persistence + auth
   web/      React SPA + PWA (manifest, service worker, offline-очередь)
 packages/
   core-contracts/   типы домена (14 статусов, ворота G0–G6, релизы)
@@ -40,7 +40,7 @@ src-tauri/          конфигурация Tauri 2 (окна, bundle, capabili
 scripts/            security-scan.mjs (SAST + сканер секретов)
 ```
 
-## 4. API v0.7.0 (фактические endpoints)
+## 4. API v0.8.0 (фактические endpoints)
 
 Машинночитаемый контракт: [docs/openapi.json](openapi.json) — OpenAPI 3.1.0,
 18 путей, bearerAuth; соответствие спеки живым маршрутам гарантировано

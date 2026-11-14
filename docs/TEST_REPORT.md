@@ -211,3 +211,18 @@ healthz (0.7.0) → создание проекта → PATCH статуса DEV
 Первая итерация смоука дала 10/14: две ошибки были в самом скрипте
 (поле job внутри ответа run; approver должен быть 'owner'), обе исправлены —
 сервер отработал корректно.
+
+# Дополнение 11 (пост-STAGE 8) — артефакты в UI + API v0.8.0 (1 новый тест, итого 117)
+
+- `GET /api/v1/projects/:slug` теперь возвращает артефакты проекта (artifacts).
+- ProjectWorkspace — карточка «Артефакты проекта (N)»: kind, имя файла из
+  storageKey, версия, короткий sha256 и кнопка «Скачать» (ссылка на
+  /api/v1/artifacts/:id/download, download-атрибут = имя файла); честное
+  пустое состояние; пометка о SHA-256-проверке при каждой отдаче.
+- API повышена до v0.8.0: healthz version 0.8.0, docs/openapi.json
+  info.version 0.8.0 (+описание v0.8.0), openapi.test ожидает 0.8.0;
+  актуализированы «текущие» ссылки в README, TECHNICAL_SPECIFICATION,
+  INSTALLATION, USER_GUIDE, TRACEABILITY, Settings; RELEASE_NOTES —
+  раздел 0.7.0–0.8.0 (исторические записи AUDIT/TEST_REPORT не менялись).
+- `apps/web/src/artifactLink.test.tsx` (1): ссылка скачивания с корректными
+  href и download-атрибутом.

@@ -124,7 +124,7 @@ export function Settings() {
       </Card>
       <Card title="API-контракт (OpenAPI)">
         <p className="nf-muted-text">
-          Сервер публикует машинночитаемую спецификацию API v0.7.0 (OpenAPI 3.1,
+          Сервер публикует машинночитаемую спецификацию API v0.8.0 (OpenAPI 3.1,
           20 путей) — открытый эндпоинт, токен не требуется.
         </p>
         <a
