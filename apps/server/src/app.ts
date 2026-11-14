@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import path from 'node:path';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import websocket from '@fastify/websocket';
 import type { ArtifactKind, FactorySettings, GateCode, Job, Project, Release, ReleaseChannel } from '@neuroos/core-contracts';
 import {
@@ -131,6 +132,7 @@ export async function createApp(options: CreateAppOptions = {}) {
     const rawUrl = req.url ?? '';
     const url = rawUrl.split('?')[0];
     if (url === '/healthz') return;
+    if (url === '/api/v1/openapi.json') return;
     if (!url.startsWith('/api/v1/')) {
       if (url !== '/ws') return;
       const wsToken = wsTokenFrom(rawUrl, req.headers.authorization ?? '');
@@ -166,6 +168,30 @@ export async function createApp(options: CreateAppOptions = {}) {
     version: '0.7.0',
     auth: authEnabled ? 'enabled' : 'disabled',
   }));
+
+  let openApiSpec: string | undefined;
+  app.get('/api/v1/openapi.json', async (_req, reply) => {
+    if (openApiSpec === undefined) {
+      const candidates = [
+        fileURLToPath(new URL('../../../docs/openapi.json', import.meta.url)),
+        path.resolve(process.cwd(), 'docs/openapi.json'),
+        path.resolve(process.cwd(), '../../docs/openapi.json'),
+      ];
+      for (const candidate of candidates) {
+        try {
+          openApiSpec = await readFile(candidate, 'utf8');
+          break;
+        } catch {
+          openApiSpec = undefined;
+        }
+      }
+    }
+    if (openApiSpec === undefined) {
+      return reply.code(503).send({ error: 'openapi spec file not found (docs/openapi.json)' });
+    }
+    reply.header('content-type', 'application/json; charset=utf-8');
+    return openApiSpec;
+  });
 
   app.get('/api/v1/overview', async () => {
     const byStatus: Record<string, number> = {};

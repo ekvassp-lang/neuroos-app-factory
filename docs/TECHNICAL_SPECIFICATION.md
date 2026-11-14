@@ -50,6 +50,7 @@ scripts/            security-scan.mjs (SAST + сканер секретов)
 |---|---|
 | GET /healthz | версия API, статус, режим аутентификации (auth: enabled/disabled) |
 | GET /api/v1/overview | сводка фабрики |
+| GET /api/v1/openapi.json | машинночитаемая OpenAPI-спека (открыт всегда, как /healthz) |
 | GET/POST /api/v1/projects | список/создание проектов |
 | GET/PATCH /api/v1/projects/:slug | карточка/изменение (RELEASED → 409 без G6) |
 | GET /api/v1/projects/:slug/gates | вычисленные ворота G0–G6 + решения |

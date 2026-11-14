@@ -61,12 +61,29 @@ describe('OpenAPI spec vs live routes', () => {
     expect(mismatches).toEqual([]);
   });
 
+  it('GET /api/v1/openapi.json serves the spec and stays open when auth is enabled', async () => {
+    const dir = await mkdtemp(path.join(tmpdir(), 'nf-openapi-'));
+    tmpDirs.push(dir);
+    const { app } = await createApp({
+      persistPath: path.join(dir, 'state.json'),
+      authTokens: { 'owner-token': 'owner' },
+    });
+    const res = await app.inject({ method: 'GET', url: '/api/v1/openapi.json' });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toContain('application/json');
+    const served = JSON.parse(res.payload) as Spec;
+    expect(served.info.version).toBe('0.7.0');
+    expect(Object.keys(served.paths)).toContain('/api/v1/openapi.json');
+    await app.close();
+  });
+
   it('every /api/v1 route is documented in the spec (probe of known routes)', async () => {
     const spec = JSON.parse(await readFile(path.join(process.cwd(), '../../docs/openapi.json'), 'utf8')) as Spec;
     const documented = new Set(Object.keys(spec.paths));
     const required = [
       '/healthz',
       '/api/v1/overview',
+      '/api/v1/openapi.json',
       '/api/v1/projects',
       '/api/v1/projects/{slug}',
       '/api/v1/projects/{slug}/gates',
